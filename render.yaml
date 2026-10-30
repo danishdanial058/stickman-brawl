@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: stickman-brawl-server
+    runtime: node
+    region: singapore
+    plan: free
+    rootDir: server
+    buildCommand: echo "No build step needed"
+    startCommand: node server.js
+    healthCheckPath: /
+    autoDeploy: true
