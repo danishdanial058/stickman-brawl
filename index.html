@@ -536,6 +536,11 @@ function sfx(n){
   if(!NET_QUIET[n])netEv('s',n);
   SFX[n]();
 }
+function sfxBy(f,n){
+  if(!Object.prototype.hasOwnProperty.call(SFX,n))return;
+  netEv('s',n,f===g.p2?2:(f===g.p1?1:0));
+  SFX[n]();
+}
 
 /* --- music: a small step sequencer, Am F C G, faster and busier when the fight gets tense --- */
 const MUS={on:save.music!==false,step:0,next:0};
@@ -619,7 +624,7 @@ class Fighter{
     if(type==='special'||type==='super')this.spec=0;
     if(type==='super')this.removeHeld('orb');
     if(type==='dive'){this.vx=this.face*430;this.vy=Math.max(this.vy,560);this.diveUsed=true;this.jumping=false;}
-    this.state=type;sfx(type);
+    this.state=type;sfxBy(this,type);
   }
   endAttack(){const ty=this.atk?this.atk.type:null;this.atk=null;if(ty==='punch')this.chainT=.42;else this.chain=0;}
   doPunch(){
@@ -709,7 +714,7 @@ class Fighter{
           else if(inp.jump>0&&(this.coyote>0||this.has('djump'))){
             const grounded=this.coyote>0;
             this.vy=CFG.JUMP_V;this.onGround=false;this.jumping=true;this.coyote=0;inp.jump=0;
-            if(this.human)sfx(grounded?'jump':'airjump');
+            if(this.human)sfxBy(this,grounded?'jump':'airjump');
             if(!grounded)burst(this.x,this.y,'#4cc46a',6);
             if(this.ai&&Math.random()<this.ai.p.dive)this.ai.wantDive=true;
           }
@@ -1367,7 +1372,7 @@ function keyAction(code){
 }
 const playingNow=()=>g.mode!=='demo'&&(g.phase==='intro'||g.phase==='fight'||g.phase==='koWait');
 function fire(who,act){
-  if(g.mode==='guest'){if(who==='p1'&&g.phase==='fight'){const i=ACTS.indexOf(act);if(i>=0)net.cnt[i]++;}return;}
+  if(g.mode==='guest'){if(who==='p1'&&g.phase==='fight'){const i=ACTS.indexOf(act);if(i>=0)net.cnt[i]++;predPress(act);}return;}
   if(g.phase!=='fight'||g.paused)return;
   const f=who==='p1'?g.p1:g.p2;
   if(!f||f.ctrl!==who)return;
@@ -1930,10 +1935,14 @@ function render(){
    Everything received is treated as untrusted: parsed defensively, type-checked and clamped. */
 const IS_APP=document.body.classList.contains('app');
 const NET_PREFIX='stickmanbrawl-dd058/v1';
+const NET_SERVER='wss://stickman-brawl-server.onrender.com/mqtt';   // our own server on Render (Singapore)
+const NET_TIMEOUT=12000,NET_MAX_TRIES=8;                             // free server can take ~1 minute to wake up
 const NET_BROKERS=(()=>{
   try{const b=new URLSearchParams(location.search).get('broker');if(b&&/^wss?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/[\w\-]*)?$/.test(b))return [b];}catch(e){}
-  return ['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt'];
+  return [NET_SERVER];
 })();
+if(NET_BROKERS[0]!==NET_SERVER)window.__netdbg={g,get pred(){return pred;},net:()=>net};
+const NET_WAKE=NET_BROKERS[0].replace(/^ws/,'http').replace(/\/mqtt$/,'/');
 const ACTS=['jump','punch','kick','special','dodge'];
 const STATES=['idle','walk','jump','block','punch','upper','air','kick','dive','roll','special','super','smash','charge','slam','hit','ko','frozen'];
 const HATS=['band','mask','spikes','cap','helmet','ears','shades','crown','antenna','hood','horns','none'];
@@ -1996,7 +2005,7 @@ class Mqtt{
   close(){try{this.raw(0xE0,[]);this.ws.close();}catch(e){}}
 }
 
-const net={c:null,bi:0,tries:0,id:rid(8),state:'idle',role:null,mid:null,opp:null,invite:null,seekT:0,searchT:0,seen:{},
+const net={seq:0,oppSeq:0,oppSeqT:0,c:null,bi:0,tries:0,id:rid(8),state:'idle',role:null,mid:null,opp:null,invite:null,seekT:0,searchT:0,seen:{},
   lastRecv:0,snapT:0,snapN:0,inT:0,inKey:'',hiT:0,statusT:0,connecting:false,connT:0,err:'',
   cnt:[0,0,0,0,0],oppCnt:[0,0,0,0,0],oppHold:{l:false,r:false,b:false,j:false},events:[],rematchMe:false,rematchOpp:false,started:false,maxCombo:0};
 const NT=s=>NET_PREFIX+'/'+s;
@@ -2009,6 +2018,7 @@ function netEv(...a){
 function netConnect(){
   if(net.c&&(net.c.up||net.connecting))return;
   net.connecting=true;net.connT=performance.now();
+  if(net.tries===0){try{fetch(NET_WAKE,{mode:'no-cors',cache:'no-store'}).catch(()=>{});}catch(e){}}
   const url=NET_BROKERS[net.bi%NET_BROKERS.length];
   const c=new Mqtt(url,'sb'+net.id,netOnMsg,()=>{net.connecting=false;net.err='';net.tries=0;netOnUp();},was=>{
     if(net.c!==c)return;
@@ -2016,7 +2026,7 @@ function netConnect(){
     if(net.state==='idle')return;
     if(!was){
       net.bi++;net.tries++;
-      if(net.tries<NET_BROKERS.length*2){netConnect();return;}
+      if(net.tries<NET_MAX_TRIES){setTimeout(()=>{if(!net.c&&net.state!=='idle')netConnect();},1500);netStatus();return;}
       net.err=IS_APP?'Can\'t reach the online server. Check your internet connection, then try again.'
         :'Can\'t reach the online server from this web preview. Online play works in the Android app.';
       if(net.state==='match')netOppLeft(true);
@@ -2107,7 +2117,7 @@ function netOnMsg(topic,text){
 function look(f){return {n:f.name,c:f.col,b:f.bar,h:f.hat,a:f.acc,al:f.alpha};}
 function startInfo(){return {t:'start',ar:g.arena.id,f:[look(g.p1),look(g.p2)]};}
 function hostStart(){
-  net.oppCnt=[0,0,0,0,0];net.oppHold={l:false,r:false,b:false,j:false};net.events=[];net.rematchMe=net.rematchOpp=false;net.snapN=0;
+  net.oppCnt=[0,0,0,0,0];net.oppHold={l:false,r:false,b:false,j:false};net.events=[];net.oppSeq=0;net.rematchMe=net.rematchOpp=false;net.snapN=0;
   g.mode='online';g.diffUsed='normal';g.score=0;g.wins=[0,0];g.round=1;g.stage=0;g.endBanner=null;g.paused=false;g.forfeit=null;
   g.stats=newStats();g.unlockBefore=unlockedIds();
   $('pauseOv').hidden=true;$('netOv').hidden=true;
@@ -2118,6 +2128,7 @@ function hostStart(){
 }
 function hostMsg(m){
   if(m.t==='in'){
+    if(Number.isInteger(m.s)&&m.s>=0&&m.s!==net.oppSeq){net.oppSeq=m.s;net.oppSeqT=performance.now();}
     const h=net.oppHold;h.l=m.l===true;h.r=m.r===true;h.b=m.b===true;h.j=m.j===true;
     if(Array.isArray(m.c)&&m.c.length===5){
       const c=m.c.map(v=>num(v,0,1e9,0)|0);
@@ -2142,7 +2153,7 @@ function sendSnap(){
   const m={t:'snap',ph:g.phase,tm:r1(g.time),w:g.wins,r:g.round,sh:Math.round(g.shake),fl:r2(g.flash),sl:g.slowT>0?1:0,
     ko:g.koFocus===g.p1?1:(g.koFocus===g.p2?2:0),f:[pk(g.p1),pk(g.p2)],c:g.clones.slice(0,4).map(pk),
     pi:g.pickups.slice(0,12).map(p=>[IDS.indexOf(p.id),r1(p.x),r1(p.y),p.landed?1:0,r2(p.t),p.pulled?1:0]),
-    pr:g.projectiles.slice(0,6).map(p=>[r1(p.x),r1(p.y),r2(p.t)]),ev:net.events.splice(0)};
+    pr:g.projectiles.slice(0,6).map(p=>[r1(p.x),r1(p.y),r2(p.t)]),ev:net.events.splice(0),a:net.oppSeq,ad:Math.round(performance.now()-(net.oppSeqT||performance.now()))};
   if(++net.snapN%30===0)m.i=startInfo();
   netSend(m);
 }
@@ -2154,12 +2165,16 @@ class Puppet{
     this.boss=false;this.x=480;this.y=CFG.GROUND;this.tx=480;this.ty=CFG.GROUND;this.init=false;this.face=1;this.scale=1;this.state='idle';this.t=0;this.vx=0;
     this.koT=0;this.ap=0;this.alt=false;this.wp=0;this.hp=100;this.maxHp=100;this.stam=100;this.spec=0;this.held=[];this.freezeT=0;this.reverseT=0;
     this.combo=0;this.comboT=0;this.air=false;this.flash=false;this.hurt=false;this.glow=false;this.trail=[];this.trailT=0;
+    this.buf=[];this.over=null;
   }
   has(id){return this.held.some(h=>h.id===id);}
   apply(a){
     if(!Array.isArray(a)||a.length<24)return;
     this.tx=num(a[0],-100,1100,this.tx);this.ty=num(a[1],-800,700,this.ty);
     if(!this.init){this.x=this.tx;this.y=this.ty;this.init=true;}
+    const now=performance.now();
+    this.buf.push({t:now,x:this.tx,y:this.ty});
+    if(this.buf.length>12)this.buf.shift();
     this.face=a[2]===-1?-1:1;this.scale=num(a[3],.3,3,1);this.state=STATES[num(a[4],0,STATES.length-1,0)|0]||'idle';
     this.t=num(a[5],0,1e7,0);this.vx=num(a[6],-3000,3000,0);this.koT=num(a[7],0,100,0);this.ap=num(a[8],0,2,0);this.alt=a[9]===1;this.wp=num(a[10],-1e7,1e7,0);
     this.hp=num(a[11],0,1000,0);this.stam=num(a[12],0,100,0);this.spec=num(a[13],0,100,0);
@@ -2169,12 +2184,27 @@ class Puppet{
     this.air=a[19]===1;this.flash=a[20]===1;this.hurt=a[21]===1;this.glow=a[22]===1;this.maxHp=num(a[23],1,1000,100);
   }
   view(){
-    return {x:this.x,y:this.y,face:this.face,scale:this.scale,state:this.state,t:this.t,vx:this.vx,koT:this.koT,ap:this.ap,alt:this.alt,wp:this.wp,
-      col:this.col,hat:this.hat,acc:this.acc,boss:false,brow:this.brow,air:this.air,glow:this.glow,frozen:this.freezeT>0,hurt:this.hurt,flash:this.flash};
+    const o=this.over;
+    return {x:this.x,y:this.y,face:o?o.face:this.face,scale:this.scale,state:o?o.state:this.state,t:this.t,vx:o?o.vx:this.vx,koT:this.koT,ap:o?o.ap:this.ap,alt:o?o.alt:this.alt,wp:o?o.wp:this.wp,
+      col:this.col,hat:this.hat,acc:this.acc,boss:false,brow:this.brow,air:o?o.air:this.air,glow:this.glow,frozen:this.freezeT>0,hurt:this.hurt,flash:this.flash};
+  }
+  interp(){
+    // draw slightly in the past so there are always two snapshots to blend between
+    const b=this.buf;if(!b.length)return;
+    const rt=performance.now()-NET_INTERP;
+    if(rt<=b[0].t){this.x=b[0].x;this.y=b[0].y;return;}
+    for(let i=b.length-1;i>0;i--){
+      if(b[i-1].t<=rt){
+        if(rt>=b[i].t&&i===b.length-1){this.x=b[i].x;this.y=b[i].y;return;}
+        const a=b[i-1],c=b[i],k=clamp((rt-a.t)/Math.max(1,c.t-a.t),0,1);
+        this.x=lerp(a.x,c.x,k);this.y=lerp(a.y,c.y,k);return;
+      }
+    }
+    const l=b[b.length-1];this.x=l.x;this.y=l.y;
   }
   tick(dt){
-    if(Math.abs(this.tx-this.x)>160||Math.abs(this.ty-this.y)>220){this.x=this.tx;this.y=this.ty;}
-    else{const k=Math.min(1,dt*18);this.x+=(this.tx-this.x)*k;this.y+=(this.ty-this.y)*k;}
+    if(this===g.p2&&pred.on){this.x=pred.x;this.y=pred.y;this.over=predView();}
+    else{this.interp();this.over=null;}
     this.t+=dt;this.comboT=Math.max(0,this.comboT-dt);
     for(const h of this.held)if(h.t!==Infinity)h.t=Math.max(0,h.t-dt);
     const ghost=this.has('speed')||this.state==='roll'||this.state==='special'||this.state==='charge'||this.state==='dive';
@@ -2184,6 +2214,103 @@ class Puppet{
     while(this.trail.length&&this.trail[0].life<=0)this.trail.shift();
   }
 }
+
+/* --- guest prediction: your own movement, jumps and basic attacks show instantly, then get corrected by the host --- */
+const NET_INTERP=60;
+const FREE_STATES={idle:1,walk:1,jump:1,block:1};
+const LOCAL_SFX={punch:1,upper:1,kick:1,jump:1,airjump:1};
+const pred={on:false,x:0,y:0,vx:0,vy:0,ground:true,jumping:false,coyote:0,hist:[],sent:[],act:null,last:null,wp:0,face:-1,chain:0,chainT:0,jumpBuf:0,block:false};
+function predReset(){pred.on=false;pred.hist=[];pred.sent=[];pred.act=null;pred.last=null;pred.chain=0;pred.chainT=0;pred.jumpBuf=0;}
+function predFree(){
+  const me=g.p2;
+  if(!me||g.phase!=='fight'||me.hp<=0||me.freezeT>0)return false;
+  if(FREE_STATES[me.state])return true;
+  // the host is still playing an attack we already showed locally
+  return !!(pred.last&&me.state===pred.last.type&&performance.now()-pred.last.t<900);
+}
+function predPress(act){
+  if(!pred.on)return;
+  if(act==='jump'){pred.jumpBuf=.16;return;}
+  if(pred.act||!pred.ground)return;
+  let type=null;
+  if(act==='punch'){if(pred.chain>=2&&pred.chainT>0){type='upper';pred.chain=0;pred.chainT=0;}else{pred.chain=pred.chainT>0?pred.chain+1:1;pred.chainT=0;type='punch';}}
+  else if(act==='kick')type='kick';
+  if(!type)return;
+  pred.act={type,t:0,dur:ATK[type].dur};pred.last={type,t:performance.now()};
+  if(type==='punch')pred.alt=!pred.alt;
+  SFX[type]();
+}
+function predStep(dt){
+  const me=g.p2,o=g.p1;
+  if(!me)return;
+  if(!predFree()){if(pred.on){pred.on=false;pred.hist=[];pred.act=null;}return;}
+  if(!pred.on){
+    pred.on=true;pred.x=me.tx;pred.y=me.ty;pred.vx=me.vx;pred.vy=0;pred.ground=me.ty>=CFG.GROUND-.5;pred.jumping=false;pred.hist=[];pred.face=me.face;
+  }
+  const h=hold.p1;
+  let L=!!(h.left||virt.left),Rr=!!(h.right||virt.right);
+  if(me.reverseT>0){const t=L;L=Rr;Rr=t;}
+  const blockHeld=!!(h.block||virt.block),jumpHeld=!!(h.jump||virt.jump);
+  const speed=CFG.MOVE*(me.has('speed')?1.6:1),grav=CFG.GRAVITY*g.arena.grav;
+  if(pred.chainT>0){pred.chainT-=dt;if(pred.chainT<=0)pred.chain=0;}
+  pred.block=false;
+  if(pred.act){
+    pred.act.t+=dt;pred.vx*=Math.pow(.002,dt);
+    if(pred.act.t>=pred.act.dur){if(pred.act.type==='punch')pred.chainT=.42;else pred.chain=0;pred.act=null;}
+  }else if(blockHeld&&pred.ground&&me.stam>0){pred.block=true;pred.vx*=Math.pow(.0005,dt);}
+  else{
+    const dir=(Rr?1:0)-(L?1:0);
+    let target=0;
+    if(dir){const away=o&&Math.sign(o.x-pred.x)===-dir;target=dir*speed*(away&&pred.ground?CFG.BACK_SPEED:1);}
+    const rate=dir?(pred.ground?CFG.ACCEL:CFG.AIR_ACCEL):(pred.ground?CFG.FRICTION:CFG.AIR_DRAG);
+    const dv=target-pred.vx,sv=rate*dt;
+    pred.vx=Math.abs(dv)<=sv?target:pred.vx+Math.sign(dv)*sv;
+    if(pred.jumpBuf>0&&(pred.coyote>0||me.has('djump'))){
+      SFX[pred.coyote>0?'jump':'airjump']();
+      pred.vy=CFG.JUMP_V;pred.ground=false;pred.jumping=true;pred.coyote=0;pred.jumpBuf=0;
+    }
+  }
+  pred.jumpBuf=Math.max(0,pred.jumpBuf-dt);
+  if(pred.jumping&&pred.vy<-260&&!jumpHeld){pred.vy*=CFG.JUMP_CUT;pred.jumping=false;}
+  if(pred.vy>=0)pred.jumping=false;
+  pred.vy+=grav*(pred.vy>0?CFG.FALL_GRAV:1)*dt;pred.y+=pred.vy*dt;
+  if(pred.y>=CFG.GROUND){pred.y=CFG.GROUND;if(!pred.ground&&pred.vy>380)dust(pred.x,pred.y);pred.vy=0;pred.ground=true;pred.jumping=false;}
+  else pred.ground=false;
+  pred.coyote=pred.ground?CFG.COYOTE:pred.coyote-dt;
+  pred.x=clamp(pred.x+pred.vx*dt,36,CFG.W-36);
+  if(pred.ground)pred.wp+=Math.abs(pred.vx)*dt*.045;
+  if(o&&pred.ground&&!pred.act&&Math.abs(o.x-pred.x)>6)pred.face=o.x>pred.x?1:-1;
+  pred.hist.push({t:performance.now(),x:pred.x,y:pred.y,gr:pred.ground});
+  if(pred.hist.length>150)pred.hist.shift();
+}
+function predView(){
+  const a=pred.act;
+  return {face:pred.face,vx:pred.vx,wp:pred.wp*(pred.vx*pred.face<-1?-1:1),air:!pred.ground,alt:!!pred.alt,
+    state:a?a.type:(!pred.ground?'jump':(pred.block?'block':(Math.abs(pred.vx)>25?'walk':'idle'))),ap:a?a.t/a.dur:0};
+}
+function predReconcile(ack,age){
+  const me=g.p2;
+  if(!pred.on||!me||!pred.hist.length)return;
+  const sent=pred.sent.find(e=>e.seq===ack);
+  if(!sent)return;
+  // the host started using input #ack when it arrived; the snapshot is 'age' ms after that,
+  // which lines up with our own prediction 'age' ms after we sent it
+  const target=sent.t+age,H=pred.hist;
+  if(target<H[0].t)return;
+  let k=H.length-1;
+  while(k>0&&H[k].t>target)k--;
+  const ref=H[k];
+  const ex=me.tx-ref.x,ey=me.ty-ref.y;
+  if(Math.abs(ex)>110||Math.abs(ey)>160){
+    pred.x=me.tx;pred.y=me.ty;pred.hist=[];
+    if(me.ty>=CFG.GROUND-.5){pred.ground=true;pred.vy=0;}
+    return;
+  }
+  const cx=ex*.15,cy=(ref.gr&&me.ty>=CFG.GROUND-.5)?0:ey*.15;
+  pred.x=clamp(pred.x+cx,36,CFG.W-36);pred.y=Math.min(CFG.GROUND,pred.y+cy);
+  for(let i=k;i<H.length;i++){H[i].x+=cx;H[i].y+=cy;}
+}
+
 function guestStart(m){
   if(!m||!Array.isArray(m.f)||m.f.length!==2)return;
   const lk=x=>{x=(x&&typeof x==='object')?x:{};return {name:cleanName(x.n),col:okColor(x.c)?x.c:INK,bar:okColor(x.b)?x.b:INK,hat:HATS.includes(x.h)?x.h:'none',acc:okColor(x.a)?x.a:INK,alpha:num(x.al,.3,1,1)};};
@@ -2193,7 +2320,8 @@ function guestStart(m){
   g.fighters=[g.p1,g.p2];g.clones=[];g.pickups=[];g.projectiles=[];g.waves=[];g.particles=[];g.floaters=[];
   g.banner=null;g.callout=null;g.slowT=0;g.koFocus=null;g.shake=0;g.flash=0;g.hitstop=0;
   setArena(ARENAS.some(a=>a.id===m.ar)?m.ar:'notebook');
-  net.started=true;net.cnt=[0,0,0,0,0];net.inKey='';net.maxCombo=0;net.rematchMe=net.rematchOpp=false;
+  net.started=true;net.cnt=[0,0,0,0,0];net.inKey='';net.seq=0;net.maxCombo=0;net.rematchMe=net.rematchOpp=false;
+  predReset();
   $('netOv').hidden=true;$('pauseOv').hidden=true;
   setPlaying(true);
 }
@@ -2201,7 +2329,7 @@ function playEv(e){
   if(!Array.isArray(e)||typeof e[0]!=='string')return;
   const n=(i,a,b)=>num(e[i],a,b,0),col=i=>okColor(e[i])?e[i]:INK,str=i=>String(e[i]==null?'':e[i]).slice(0,24);
   switch(e[0]){
-    case 's':if(typeof e[1]==='string')sfx(e[1]);break;
+    case 's':if(typeof e[1]==='string'&&!(e[2]===2&&LOCAL_SFX[e[1]]))sfx(e[1]);break;
     case 'sp':spark(n(1,-200,1200),n(2,-400,700),col(3),n(4,0,30)|0);break;
     case 'bu':burst(n(1,-200,1200),n(2,-400,700),col(3),n(4,0,30)|0);break;
     case 'ri':ring(n(1,-200,1200),n(2,-400,700),col(3),n(4,0,300));break;
@@ -2218,7 +2346,7 @@ function applySnap(m){
   g.round=num(m.r,1,99,1)|0;
   g.shake=Math.max(g.shake,num(m.sh,0,30,0));g.flash=Math.max(g.flash,num(m.fl,0,1,0));
   g.slowT=m.sl===1?.3:0;g.koFocus=m.ko===1?g.p1:(m.ko===2?g.p2:null);
-  if(Array.isArray(m.f)&&m.f.length===2){g.p1.apply(m.f[0]);g.p2.apply(m.f[1]);net.maxCombo=Math.max(net.maxCombo,g.p2.combo);}
+  if(Array.isArray(m.f)&&m.f.length===2){g.p1.apply(m.f[0]);g.p2.apply(m.f[1]);net.maxCombo=Math.max(net.maxCombo,g.p2.combo);predReconcile(num(m.a,0,1e9,0)|0,num(m.ad,0,5000,0));}
   const cl=Array.isArray(m.c)?m.c.slice(0,4):[];
   while(g.clones.length<cl.length)g.clones.push(new Puppet({name:'',col:'#8a4fd6',bar:'#8a4fd6',hat:'none',acc:'#8a4fd6',alpha:.72,clone:true},false));
   g.clones.length=cl.length;cl.forEach((a,i)=>g.clones[i].apply(a));
@@ -2241,6 +2369,7 @@ function guestStep(real){
   g.clock+=real;
   if(g.phase==='fight')g.stats.time+=real;
   if(g.slowT>0)g.slowT=Math.max(0,g.slowT-real*.2);
+  predStep(real);
   for(const f of g.fighters)f.tick(real);
   for(const c of g.clones)c.tick(real);
   updateFx(real);
@@ -2269,7 +2398,11 @@ function finishGuest(win,why){
 function sendInput(now){
   const h=hold.p1,l=!!(h.left||virt.left),r=!!(h.right||virt.right),b=!!(h.block||virt.block),j=!!(h.jump||virt.jump);
   const key=(l?1:0)+(r?2:0)+(b?4:0)+(j?8:0)+'|'+net.cnt.join(',');
-  if((key!==net.inKey&&now-net.inT>30)||now-net.inT>250){net.inKey=key;net.inT=now;netSend({t:'in',l,r,b,j,c:net.cnt});}
+  if((key!==net.inKey&&now-net.inT>30)||now-net.inT>250){
+    net.inKey=key;net.inT=now;net.seq++;
+    pred.sent.push({seq:net.seq,t:now});if(pred.sent.length>120)pred.sent.shift();
+    netSend({t:'in',l,r,b,j,c:net.cnt,s:net.seq});
+  }
 }
 function requestRematch(){
   if(net.state!=='match'){netStartSearch();return;}
@@ -2306,7 +2439,7 @@ function netStatus(txt){
   if(net.state==='seeking'){
     const s=Math.floor((performance.now()-net.searchT)/1000),others=Object.keys(net.seen).length;
     $('netTitle').textContent='Finding a player';
-    el.textContent=(!net.c||!net.c.up)?'Connecting to the online server…':
+    el.textContent=(!net.c||!net.c.up)?(net.tries>0?'Waking up the online server. The first search after a quiet spell can take up to a minute…':'Connecting to the online server…'):
       fmtTime(s)+' · '+(others?others+(others===1?' other player is':' other players are')+' looking right now.'
         :'No one else is looking yet. Keep this open, or ask a friend to tap Online too.');
     $('netCpu').hidden=s<20;
@@ -2314,7 +2447,7 @@ function netStatus(txt){
 }
 function netTick(){
   const now=performance.now();
-  if(net.connecting&&net.c&&now-net.connT>7000){try{net.c.ws.close();}catch(e){}}
+  if(net.connecting&&net.c&&now-net.connT>NET_TIMEOUT){try{net.c.ws.close();}catch(e){}}
   if(net.state==='seeking'){
     if(net.c&&net.c.up&&now-net.seekT>1500)netSeek();
     if(net.invite&&now-net.invite.t>3000)net.invite=null;
@@ -2327,7 +2460,7 @@ function netTick(){
       return;
     }
     if(now-net.lastRecv>7000){netOppLeft(true);return;}
-    if(net.role==='host'){if(now-net.snapT>66){net.snapT=now;sendSnap();}}
+    if(net.role==='host'){if(now-net.snapT>=32){net.snapT=now;sendSnap();}}
     else sendInput(now);
   }
 }
