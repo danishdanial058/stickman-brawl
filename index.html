@@ -528,16 +528,16 @@ const IDS=Object.keys(PU);
 // Tools: picked up from the floor, swung with punch, thrown with down. uses = landed hits before it breaks.
 // style = how it is swung, fx = colour of the slash trail, mid/L = where the grip sits in the drawing (for pickups and icons)
 const TOOLS={
-  sword:{name:'Sword',desc:'Fast slashes with good reach.',reach:72,dmg:10,kb:230,stun:.34,durMul:1,uses:10,snd:'slash',style:'swing',fx:'#cfe3ff',mid:20,L:56},
-  stick:{name:'Bo Staff',desc:'Longest swing and big knockback.',reach:90,dmg:8,kb:400,stun:.4,durMul:1.15,uses:9,snd:'swoosh',style:'swing',fx:'#ecd9b5',mid:17,L:82},
-  gauntlet:{name:'Gauntlet',desc:'Heavy punches that smash through blocks.',reach:44,dmg:13,kb:280,stun:.46,durMul:1.05,uses:8,snd:'gauntlet',guard:2.2,style:'punch',fx:'#ffd166',mid:2,L:30},
-  axe:{name:'Battle Axe',desc:'Slow, brutal chops that crack guards.',reach:68,dmg:15,kb:340,stun:.44,durMul:1.3,uses:7,snd:'chop',guard:1.7,style:'swing',fx:'#ffb38a',mid:20,L:56},
-  spear:{name:'Spear',desc:'Pokes from far away. Throw it for 18 damage.',reach:108,dmg:9,kb:260,stun:.34,durMul:1.05,uses:10,snd:'thrust',style:'thrust',fx:'#e9eef6',mid:23,L:106,throwDmg:18,throwG:420,throwV:920},
-  hammer:{name:'War Hammer',desc:'Very slow, huge damage, launches people.',reach:64,dmg:18,kb:560,stun:.52,durMul:1.5,uses:6,snd:'gauntlet',guard:2.6,style:'swing',fx:'#d6d9de',mid:22,L:56,launch:-430,throwDmg:18},
-  katana:{name:'Katana',desc:'The quickest blade. Long, fast combos.',reach:78,dmg:8,kb:190,stun:.3,durMul:.78,uses:12,snd:'slash',style:'swing',fx:'#f1f6ff',mid:26,L:72},
-  nunchucks:{name:'Nunchucks',desc:'Rapid spinning hits.',reach:60,dmg:6,kb:160,stun:.26,durMul:.66,uses:14,snd:'whirr',style:'spin',fx:'#ffe08a',mid:9,L:40},
-  boomerang:{name:'Boomerang',desc:'Throw it with down and it flies back to you.',reach:50,dmg:8,kb:220,stun:.32,durMul:.9,uses:10,snd:'swoosh',style:'punch',fx:'#ffc06b',mid:0,L:40,boomer:true,throwDmg:11},
-  bow:{name:'Bow',desc:'Punch fires arrows. 8 shots.',reach:0,dmg:9,kb:200,stun:.3,durMul:.95,uses:8,snd:'bowshot',style:'shoot',fx:'#ffffff',mid:0,L:54,ranged:true}
+  sword:{name:'Sword',desc:'Fast slashes with good reach.',reach:72,dmg:10,kb:230,stun:.34,durMul:1,uses:10,snd:'slash',style:'swing',fx:'#cfe3ff',mid:20,L:56,tip:48,base:8,blade:1,mat:['#e3e8f0','#8a5a2b']},
+  stick:{name:'Bo Staff',desc:'Longest swing and big knockback.',reach:90,dmg:8,kb:400,stun:.4,durMul:1.15,uses:9,snd:'swoosh',style:'swing',fx:'#ecd9b5',mid:17,L:82,tip:58,base:16,mat:['#b07a3f','#6e4520']},
+  gauntlet:{name:'Gauntlet',desc:'Heavy punches that smash through blocks.',reach:44,dmg:13,kb:280,stun:.46,durMul:1.05,uses:8,snd:'gauntlet',guard:2.2,style:'punch',fx:'#ffd166',mid:2,L:30,mat:['#7c8aa3','#f6c928']},
+  axe:{name:'Battle Axe',desc:'Slow, brutal chops that crack guards.',reach:68,dmg:15,kb:340,stun:.44,durMul:1.3,uses:7,snd:'chop',guard:1.7,style:'swing',fx:'#ffb38a',mid:20,L:56,tip:50,base:28,blade:1,mat:['#dfe4ec','#9a6a36']},
+  spear:{name:'Spear',desc:'Pokes from far away. Throw it for 18 damage.',reach:108,dmg:9,kb:260,stun:.34,durMul:1.05,uses:10,snd:'thrust',style:'thrust',fx:'#e9eef6',mid:23,L:106,throwDmg:18,throwG:420,throwV:920,tip:78,base:46,blade:1,mat:['#c8955a','#e3e8f0']},
+  hammer:{name:'War Hammer',desc:'Very slow, huge damage, launches people.',reach:64,dmg:18,kb:560,stun:.52,durMul:1.5,uses:6,snd:'gauntlet',guard:2.6,style:'swing',fx:'#d6d9de',mid:22,L:56,launch:-430,throwDmg:18,tip:54,base:34,mat:['#8a94a8','#8a5a2b']},
+  katana:{name:'Katana',desc:'The quickest blade. Long, fast combos.',reach:78,dmg:8,kb:190,stun:.3,durMul:.78,uses:12,snd:'slash',style:'swing',fx:'#f1f6ff',mid:26,L:72,tip:64,base:8,blade:1,mat:['#f1f5fb','#2a2f3d']},
+  nunchucks:{name:'Nunchucks',desc:'Rapid spinning hits.',reach:60,dmg:6,kb:160,stun:.26,durMul:.66,uses:14,snd:'whirr',style:'spin',fx:'#ffe08a',mid:9,L:40,tip:34,base:16,mat:['#d1352b','#56627a']},
+  boomerang:{name:'Boomerang',desc:'Punch to throw it in a curve. It flies back to your hand.',reach:50,dmg:8,kb:220,stun:.32,durMul:.9,uses:10,snd:'swoosh',style:'toss',fx:'#ffc06b',mid:0,L:40,boomer:true,ranged:true,toss:true,throwDmg:11,mat:['#e8a54a','#c47a22']},
+  bow:{name:'Bow',desc:'Punch fires arrows. 8 shots.',reach:0,dmg:9,kb:200,stun:.3,durMul:.95,uses:8,snd:'bowshot',style:'shoot',fx:'#ffffff',mid:0,L:54,ranged:true,mat:['#9a6a36','#56627a']}
 };
 const TOOL_IDS=Object.keys(TOOLS),THROWN_IDS=TOOL_IDS.concat(['arrow']);
 const TOOL_LIFE=25,TOOL_GROUND_LIFE=14,TOOL_THROW_DMG=14;
@@ -756,6 +756,11 @@ const SFX={
   fall(){tone(1200,200,.6,'sine',.07);},
   splash(){noise(.5,.35,1400);tone(300,80,.3,'sine',.07);},
   thunder(){noise(.8,.45,600);tone(60,30,.7,'sawtooth',.12);},
+  cut(){noise(.09,.3,5200);tone(1400,500,.08,'sawtooth',.05);noise(.12,.22,1400,.02);},
+  bonk(){noise(.12,.35,700);tone(140,55,.14,'sine',.2);},
+  clatter(){tone(1900,1500,.06,'triangle',.05);tone(2600,2200,.05,'triangle',.04,.05);noise(.06,.12,4000);},
+  thunk(){noise(.1,.3,900);tone(260,120,.1,'triangle',.09);},
+  catch(){tone(500,900,.07,'square',.05);noise(.05,.1,3000);},
   pause(){tone(500,300,.1,'triangle',.07);},
   pu_rage(){tone(180,700,.3,'sawtooth',.09);noise(.2,.15,2000);},
   pu_speed(){tone(300,1200,.25,'square',.06);},
@@ -780,12 +785,81 @@ function sfxBy(f,n){
 }
 
 /* --- music: a small step sequencer, Am F C G, faster and busier when the fight gets tense --- */
-const MUS={on:save.music!==false,step:0,next:0};
-const CHORDS=[[57,60,64],[53,57,60],[48,52,55],[55,59,62]];
+/* ================= MUSIC: a small sequencer. Each arena has its own theme; menu and boss have their own.
+   Songs are 8 bars: chords from a scale, a generated (but fixed per song) melody, drums, bass, pads and arpeggios.
+   When the fight gets tense (low HP, last 10 seconds, boss rage) the drums double and the melody jumps an octave. */
+const MUS={on:save.music!==false,step:0,next:0,song:null,want:null,bus:null,mel:{}};
 const midi=n=>440*Math.pow(2,(n-69)/12);
-function musicLive(){return g.mode!=='demo'&&!g.paused&&(g.phase==='intro'||g.phase==='fight'||g.phase==='koWait');}
+const SCALES={maj:[0,2,4,5,7,9,11],min:[0,2,3,5,7,8,10],dor:[0,2,3,5,7,9,10],phr:[0,1,3,5,7,8,10],mix:[0,2,4,5,7,9,10],hm:[0,2,3,5,7,8,11],lyd:[0,2,4,6,7,9,11]};
+const DRUMS={
+  pop:{k:'x.....x.x.......',s:'....x.......x...',h:'x.x.x.x.x.x.x.x.'},
+  four:{k:'x...x...x...x...',s:'....x.......x...',h:'..x...x...x...x.',open:1},
+  chill:{k:'x.........x.....',s:'....x.......x...',h:'x.xxx.x.x.xxx.x.',soft:1},
+  taiko:{k:'x..x..x...x.x...',s:'........x.....x.',h:'x...x...x...x...',tom:1},
+  march:{k:'x.......x.......',s:'....x..x....x.xx',h:'x..x..x..x..x..x'},
+  metal:{k:'x.x...x.x.x...x.',s:'....x.......x..x',h:'xxxxxxxxxxxxxxxx'},
+  breaks:{k:'x..x......x..x..',s:'....x..x.x..x...',h:'x.x.x.xxx.x.x.xx'}
+};
+// prog = scale degree of each bar's chord, bass = pattern, lead = waveform, arp = bell arpeggio layer
+const SONGS={
+  menu:{bpm:92,root:57,sc:'dor',prog:[0,6,3,4,0,6,2,4],dr:'chill',bass:'long',lead:'triangle',arp:1,seed:7,vol:.75},
+  notebook:{bpm:124,root:60,sc:'maj',prog:[0,4,5,3,0,4,3,4],dr:'pop',bass:'eighth',lead:'square',seed:11},
+  dojo:{bpm:112,root:62,sc:'dor',prog:[0,3,6,4,0,3,4,4],dr:'taiko',bass:'pulse',lead:'triangle',seed:23,pent:1},
+  rooftop:{bpm:128,root:57,sc:'min',prog:[0,5,2,6,0,5,3,4],dr:'breaks',bass:'eighth',lead:'sawtooth',seed:31},
+  moon:{bpm:104,root:59,sc:'lyd',prog:[0,1,4,0,5,1,3,4],dr:'chill',bass:'long',lead:'sine',arp:1,seed:41},
+  volcano:{bpm:140,root:52,sc:'phr',prog:[0,1,0,6,0,1,5,4],dr:'metal',bass:'gallop',lead:'sawtooth',seed:53},
+  sky:{bpm:120,root:64,sc:'maj',prog:[0,3,4,5,0,3,1,4],dr:'four',bass:'eighth',lead:'triangle',arp:1,seed:61},
+  temple:{bpm:116,root:61,sc:'hm',prog:[0,6,5,4,0,6,5,4],dr:'taiko',bass:'pulse',lead:'square',seed:71},
+  factory:{bpm:132,root:50,sc:'min',prog:[0,0,5,6,0,0,3,4],dr:'breaks',bass:'gallop',lead:'square',seed:83},
+  ice:{bpm:108,root:66,sc:'min',prog:[0,5,3,4,0,5,6,4],dr:'chill',bass:'long',lead:'sine',arp:1,seed:97},
+  ship:{bpm:126,root:55,sc:'mix',prog:[0,6,0,4,0,6,3,4],dr:'march',bass:'walk',lead:'square',seed:101},
+  boss:{bpm:150,root:50,sc:'hm',prog:[0,1,6,4,0,1,5,4],dr:'metal',bass:'gallop',lead:'sawtooth',seed:131}
+};
+function busInit(){
+  if(MUS.bus||!ac)return;
+  try{
+    const comp=ac.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=3;comp.connect(musGain);
+    // short generated room reverb
+    const len=Math.floor(ac.sampleRate*1.4),ir=ac.createBuffer(2,len,ac.sampleRate);
+    for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2);}
+    const rev=ac.createConvolver();rev.buffer=ir;const rg=ac.createGain();rg.gain.value=.22;rev.connect(rg);rg.connect(comp);
+    // tempo echo for the lead
+    const dl=ac.createDelay(1),fb=ac.createGain(),dg=ac.createGain();dl.delayTime.value=.24;fb.gain.value=.28;dg.gain.value=.22;
+    dl.connect(fb);fb.connect(dl);dl.connect(dg);dg.connect(comp);
+    const dry=ac.createGain();dry.connect(comp);const send=ac.createGain();send.connect(rev);
+    MUS.bus={dry,send,echo:dl,comp};
+  }catch(e){MUS.bus={dry:musGain,send:musGain,echo:null};}
+}
+function chordOf(S,deg){const sc=SCALES[S.sc],n=[];for(const k of [0,2,4]){const i=deg+k;n.push(S.root+sc[i%7]+12*Math.floor(i/7));}return n;}
+function degNote(S,i){const sc=SCALES[S.sc];return S.root+sc[((i%7)+7)%7]+12*Math.floor(i/7);}
+// one melody per song, built from a seeded motif: A A' A B / A A'' B' cadence
+function makeMelody(id){
+  const S=SONGS[id],rnd=seeded(S.seed*7919),RH=[[0,2,4,6],[0,3,6],[0,2,3,6],[0,4,6],[0,1,2,4,6],[0,6],[0,2,4],[0,3,4,6]];
+  const pent=d=>S.pent?[0,1,2,4,5][((d%5)+5)%5]+7*Math.floor(d/5):d;
+  const motif=()=>{const out=[];let pos=4+Math.floor(rnd()*3);for(let h=0;h<2;h++){const r=RH[Math.floor(rnd()*RH.length)];for(const st of r){pos+=Math.floor(rnd()*5)-2;pos=clamp(pos,2,11);out.push([h*8+st,pos]);}}return out;};
+  const A=motif(),B=motif(),notes=new Array(128).fill(null);
+  const plan=[[A,0],[A,1],[A,0],[B,0],[A,0],[A,2],[B,1],[null,0]];
+  plan.forEach(([m,v],bar2)=>{
+    const bar=bar2,ch=S.prog[bar];
+    if(!m){notes[bar*16]={d:12,n:degNote(S,7+ch%7)};return;}
+    for(const [st,p] of m){
+      if(st>=16)continue;
+      let deg=pent(p)+(v===1&&st>=8?1:0)+(v===2?-1:0);
+      // land on a chord tone on strong beats
+      if(st%4===0){const ct=[ch,ch+2,ch+4,ch+7];let best=ct[0];for(const c of ct)if(Math.abs(c-deg)<Math.abs(best-deg))best=c;deg=best;}
+      notes[bar*16+st]={d:st%4===0?2:1,n:degNote(S,deg)};
+    }
+  });
+  return notes;
+}
+function curSong(){
+  if(g.mode==='demo'||g.phase==='over')return 'menu';
+  if(g.fighters.some(f=>f.boss&&!f.mini&&f.hp>0))return 'boss';
+  return SONGS[g.arena.id]?g.arena.id:'notebook';
+}
+function musicLive(){return !g.paused&&!document.hidden;}
 function intense(){
-  if(g.phase!=='fight')return false;
+  if(g.phase!=='fight'||g.mode==='demo')return false;
   for(const f of [g.p1,g.p2])if(f&&f.hp>0&&f.hp/f.maxHp<.3)return true;
   if(g.p2&&g.p2.phase2)return true;
   if(g.mode!=='survival'&&g.time<=10)return true;
@@ -794,19 +868,65 @@ function intense(){
 }
 function musicTick(){
   if(!ac||!MUS.on||!musicLive()){MUS.next=0;return;}
-  const now=ac.currentTime,hot=intense(),spb=60/(hot?138:118)/4;
+  busInit();
+  const want=curSong();
+  if(want!==MUS.song&&(MUS.step%16===0||!MUS.song||MUS.next===0)){MUS.song=want;MUS.step=0;}
+  const S=SONGS[MUS.song],hot=intense(),now=ac.currentTime,spb=60/(S.bpm*(hot?1.08:1))/4;
+  if(!MUS.mel[MUS.song])MUS.mel[MUS.song]=makeMelody(MUS.song);
   if(MUS.next<now)MUS.next=now+.06;
-  while(MUS.next<now+.18){playStep(MUS.step,MUS.next,hot);MUS.next+=spb;MUS.step=(MUS.step+1)%64;}
+  while(MUS.next<now+.2){playStep(S,MUS.mel[MUS.song],MUS.step,MUS.next,hot,spb);MUS.next+=spb;MUS.step=(MUS.step+1)%128;if(want!==MUS.song&&MUS.step%16===0)break;}
 }
-function playStep(s,t,hot){
-  const bar=Math.floor(s/16)%4,i=s%16,ch=CHORDS[bar],D=musGain;
-  if(i===0||i===8||(hot&&(i===14||i===6))||(bar===3&&i===11)){playTone(150,40,.14,'sine',.5,t,D);}
-  if(i===4||i===12){playNoise(.12,.2,1800,t,D,'bandpass');playTone(220,150,.07,'triangle',.07,t,D);}
-  if(i%2===0)playNoise(.03,i%4===2?.06:.035,7000,t,D,'highpass');
-  else if(hot)playNoise(.02,.025,8000,t,D,'highpass');
-  if([0,3,6,8,11,14].indexOf(i)>=0){const n=ch[0]-24+(i===11?7:0);playTone(midi(n),0,.17,'triangle',.24,t,D);playTone(midi(n),0,.12,'square',.03,t,D);}
-  if(hot){playTone(midi(ch[[0,1,2,1][i%4]]+12),0,.09,'square',.03,t,D);}
-  else if(i===0||i===6||i===10){playTone(midi(ch[(i/2|0)%3]+12),0,.22,'triangle',.05,t,D);}
+function inst(type,f,t,dur,vol,o){
+  o=o||{};const B=MUS.bus;
+  try{
+    const osc=ac.createOscillator(),gn=ac.createGain();osc.type=type;osc.frequency.setValueAtTime(f,t);
+    if(o.glide)osc.frequency.exponentialRampToValueAtTime(Math.max(20,o.glide),t+dur);
+    if(o.det)osc.detune.value=o.det;
+    if(o.vib){const l=ac.createOscillator(),lg=ac.createGain();l.frequency.value=5.5;lg.gain.value=f*.012;l.connect(lg);lg.connect(osc.frequency);l.start(t+.08);l.stop(t+dur+.05);}
+    const a=o.att||.005;
+    gn.gain.setValueAtTime(.0001,t);gn.gain.linearRampToValueAtTime(vol,t+a);gn.gain.setValueAtTime(vol,t+Math.max(a,dur*.6));gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    let node=osc;
+    if(o.lp){const fl=ac.createBiquadFilter();fl.type='lowpass';fl.frequency.value=o.lp;fl.Q.value=o.q||.7;osc.connect(fl);node=fl;}
+    node.connect(gn);gn.connect(B.dry);
+    if(o.rev){const s=ac.createGain();s.gain.value=o.rev;gn.connect(s);s.connect(B.send);}
+    if(o.echo&&B.echo)gn.connect(B.echo);
+    osc.start(t);osc.stop(t+dur+.05);
+  }catch(e){}
+}
+function drum(kind,t,v){
+  const B=MUS.bus;
+  if(kind==='k'){inst('sine',150,t,.22,.9*v,{glide:42});playNoise(.03,.25*v,3000,t,B.dry,'lowpass');}
+  else if(kind==='s'){playNoise(.16,.42*v,1900,t,B.dry,'bandpass');inst('triangle',210,t,.09,.22*v,{glide:150});}
+  else if(kind==='h')playNoise(.035,.12*v,8000,t,B.dry,'highpass');
+  else if(kind==='o')playNoise(.16,.1*v,7000,t,B.dry,'highpass');
+  else if(kind==='t')inst('sine',110,t,.28,.6*v,{glide:70});
+}
+function playStep(S,mel,s,t,hot,spb){
+  const bar=Math.floor(s/16)%8,i=s%16,ch=chordOf(S,S.prog[bar]),D=DRUMS[S.dr],v=(S.vol||1)*(D.soft?.7:1);
+  // drums
+  if(D.k[i]==='x'||(hot&&(i===14||i===7)))drum('k',t,v);
+  if(D.s[i]==='x')drum(D.tom&&i!==8?'t':'s',t,v);
+  if(D.h[i]==='x')drum(D.open&&i%4===2?'o':'h',t,v*(i%4===0?1:.7));
+  else if(hot&&i%2===1)drum('h',t,v*.6);
+  if(i===0&&bar%4===0&&s>0)playNoise(.9,.12*v,6000,t,MUS.bus.dry,'highpass');
+  // bass
+  const root=ch[0]-24,bs=S.bass;
+  if(bs==='eighth'&&i%2===0)inst('triangle',midi(root+(i===6||i===14?12:0)),t,spb*1.8,.32*v,{lp:900});
+  else if(bs==='pulse'&&[0,3,6,10,12].includes(i))inst('triangle',midi(root+(i===10?7:0)),t,spb*2.5,.34*v,{lp:800});
+  else if(bs==='gallop'&&(i%4===0||i%4===2||i%4===3))inst('sawtooth',midi(root),t,spb*.9,.16*v,{lp:600,q:4});
+  else if(bs==='walk'&&i%4===0)inst('triangle',midi(root+[0,4,7,9][i/4]),t,spb*3.6,.34*v,{lp:900});
+  else if(bs==='long'&&(i===0||i===10))inst('triangle',midi(root),t,spb*(i?6:10),.3*v,{lp:700});
+  // pad on each bar
+  if(i===0)for(const [k,n] of ch.entries())inst('sawtooth',midi(n-12+(k===0?12:0)),t,spb*16,.035*v,{att:.25,lp:1100,det:(k-1)*9,rev:.8});
+  // arpeggio bells
+  if(S.arp&&i%2===0){const n=ch[[0,1,2,1,0,2,1,2][i/2]]+12;inst('sine',midi(n),t,spb*1.6,.05*v,{rev:.6});}
+  // melody
+  const m=mel[s];
+  if(m){
+    const n=m.n+(hot?12:0),dur=spb*(m.d+.6);
+    inst(S.lead,midi(n),t,dur,(S.lead==='sine'?.12:(S.lead==='triangle'?.1:.045))*v*(MUS.song==='menu'?.8:1),{vib:m.d>1,echo:1,rev:.35,lp:S.lead==='sawtooth'?2600:undefined});
+    if(hot)inst('square',midi(n-12),t,dur,.02*v,{});
+  }
 }
 
 /* ================= GAME STATE ================= */
@@ -868,7 +988,7 @@ class Fighter{
       const T=TOOLS[this.tool.id],a=this.atk;
       a.reach=T.reach+(type==='upper'?4:0);a.dmg=T.dmg+(type==='upper'?3:0);a.kb=Math.max(a.kb,T.kb);a.stun=Math.max(a.stun,T.stun);
       a.dur*=T.durMul;a.from*=T.durMul;a.to*=T.durMul;a.tool=this.tool.id;a.heavy=true;snd=T.snd;
-      if(T.ranged){a.box=null;a.shoot=true;}
+      if(T.ranged){a.box=null;a.shoot=true;a.throwB=!!T.toss;}
       if(T.launch&&type!=='air')a.launch=T.launch;
     }
     this.state=type;sfxBy(this,snd);
@@ -891,7 +1011,7 @@ class Fighter{
   }
   stepAttack(dt){
     const a=this.atk;a.t+=dt;this.state=a.type;
-    if(!a.fx&&a.t>=a.from&&a.from<5){a.fx=true;if(a.shoot)fireArrow(this);else if(a.type!=='dive'&&a.type!=='charge'&&a.type!=='super')swingFx(this,a);}
+    if(!a.fx&&a.t>=a.from&&a.from<5){a.fx=true;if(a.shoot){if(a.throwB)throwBoomer(this);else fireArrow(this);}else if(a.type!=='dive'&&a.type!=='charge'&&a.type!=='super')swingFx(this,a);}
     switch(a.type){
       case 'special':if(a.t<a.to)this.vx=this.face*(a.t<a.from?60:560);else this.vx*=Math.pow(.01,dt);break;
       case 'dive':this.vy=Math.max(this.vy,620);break;
@@ -1119,7 +1239,7 @@ function stageHazards(f){
     }
   }
   if(f.y>G+26)for(const k of st.lava)if(f.x>k[0]-4&&f.x<k[1]+4){
-    burst(f.x,G+20,'#ff7a1a',16);burst(f.x,G+20,'#ffd23f',10);
+    burst(f.x,G+20,'#ff7a1a',16);burst(f.x,G+20,'#ffd23f',10);blast(f.x,G+16,90,260,3);
     const toward=f.x<(k[0]+k[1])/2?-1:1;
     hazardHit(f,15,toward*300,-1200*Math.sqrt(g.arena.grav),'BURNED!','sizzle');return;
   }
@@ -1210,6 +1330,7 @@ const MOVE_NAMES={smash:'ABYSS HAMMER',slam:'BLOT QUAKE',charge:'MIDNIGHT STAMPE
 function impact(x,y,heavy,dir,col){netEv('im',x,y,heavy?1:0,dir,col);impactLocal(x,y,heavy,dir,col);}
 function impactLocal(x,y,heavy,dir,col){
   g.particles.push({type:'star',x,y,vx:0,vy:0,t:0,life:heavy?.15:.1,r:heavy?46:28});
+  if(heavy)for(let i=0;i<4;i++){const a=rand(-.9,.9);g.particles.push({type:'spark',x,y,vx:dir*Math.cos(a)*rand(260,520),vy:Math.sin(a)*rand(200,420)-160,t:0,life:rand(.3,.55)});}
   const n=heavy?9:4;
   for(let i=0;i<n;i++)g.particles.push({type:'ink',x,y,vx:dir*rand(60,360)+rand(-70,70),vy:rand(-320,-40),t:0,life:3.4,c:col,r:rand(2.5,5.5)});
   if(heavy)g.kick=Math.max(g.kick,1);
@@ -1219,15 +1340,16 @@ function swingFx(f,a){
   const s=f.scale,T=a.tool?TOOLS[a.tool]:null,style=T?T.style:'fist';
   let r,a0,a1,w,c=T?T.fx:'rgba(255,255,255,.95)',y=f.y-92*s;
   switch(a.type){
-    case 'upper':r=(a.reach+8)*s;a0=1.3;a1=-1.8;w=T?12:9;y=f.y-78*s;break;
+    case 'upper':if(T&&T.tip)return;r=(a.reach+8)*s;a0=1.3;a1=-1.8;w=9;y=f.y-78*s;break;
     case 'kick':r=a.reach*s;a0=-.4;a1=.9;w=9;y=f.y-58*s;c='rgba(255,255,255,.95)';break;
     case 'special':r=96*s;a0=-1.3;a1=1.1;w=16;c=f.col;break;
     case 'smash':r=74*s;a0=-2;a1=.9;w=18;c='#8a63d2';y=f.y-104*s;break;
     case 'toss':return;
     default:
-      if(style==='thrust'){arcEv(f.x+f.face*6*s,y+6*s,f.face,a.reach*s,0,0,7,c,1);return;}
+      if(style==='thrust'){arcEv(f.x+f.face*6*s,y+6*s,f.face,a.reach*s,0,0,4,c,1);return;}
       if(style==='spin'){r=a.reach*.75*s;a0=-Math.PI;a1=Math.PI;w=6;break;}
       if(style==='fist'||style==='punch'){r=(a.reach+6)*s;a0=-.35;a1=.3;w=7;break;}
+      if(T&&T.tip)return;
       r=a.reach*.9*s;a0=-1.7;a1=.75;w=T&&T.dmg>=14?17:11;
   }
   arcEv(f.x+f.face*2*s,y,f.face,r,a0,a1,w,c,0);
@@ -1235,25 +1357,58 @@ function swingFx(f,a){
 function arcEv(x,y,face,r,a0,a1,w,c,th){netEv('ar',x,y,face,r,a0,a1,w,c,th);g.particles.push({type:'arc',x,y,face,r,a0,a1,w,c,th,t:0,life:.17,vx:0,vy:0});}
 function bolt(x,y){netEv('bo',x,y);boltLocal(x,y);}
 function boltLocal(x,y){
+  sparks(x,y+40,10);smoke(x,y+50,4,20,'rgba(160,120,230,');
   const pts=[];let px=x+rand(-60,60);
   for(let i=0;i<=9;i++){const k=i/9;pts.push([lerp(px,x,k)+(i&&i<9?rand(-26,26):0),lerp(-20,y,k)]);}
-  g.particles.push({type:'bolt',pts,x,y,vx:0,vy:0,t:0,life:.32});
+  // forked branches off the main strike
+  const br=[];for(let b=0;b<3;b++){const s0=2+Math.floor(Math.random()*5),p0=pts[s0],L=[[p0[0],p0[1]]];let bx=p0[0],by=p0[1];const dir=Math.random()<.5?-1:1;
+    for(let j=0;j<4;j++){bx+=dir*rand(10,30);by+=rand(12,30);L.push([bx,by]);}br.push(L);}
+  g.particles.push({type:'bolt',pts,br,x,y,vx:0,vy:0,t:0,life:.36});
 }
 function crater(x,y,sc){netEv('cr',x,y,sc);craterLocal(x,y,sc);}
+const MAT_ROCK=['#b8a99a','#8f8172','#d8cbbd'];
+function chunks(x,y,n,cols,spd,size){
+  for(let i=0;i<n;i++){const a=-Math.PI/2+rand(-1.25,1.25),v=rand(.35,1)*spd;
+    g.particles.push({type:'chunk',x:x+rand(-6,6),y:y-rand(0,6),vx:Math.cos(a)*v,vy:Math.sin(a)*v,rot:rand(0,TAU),vr:rand(-14,14),w:rand(.6,1.2)*size,h:rand(.35,.8)*size,c:cols[i%cols.length],t:0,life:rand(1.6,2.6),tri:Math.random()<.4});}
+}
+function sparks(x,y,n){for(let i=0;i<n;i++){const a=rand(0,TAU),v=rand(160,520);g.particles.push({type:'spark',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-120,t:0,life:rand(.35,.7)});}}
+function smoke(x,y,n,r,c){for(let i=0;i<n;i++)g.particles.push({type:'smoke',x:x+rand(-r,r)*.4,y:y+rand(-r,r)*.3,vx:rand(-60,60),vy:rand(-90,-20),r:r*rand(.4,.8),grow:r*rand(.7,1.3),c:c||'rgba(120,128,145,',t:0,life:rand(.6,1.1)});}
+// a shockwave that shoves loose debris, smoke and ink around (and on the host, weapons and power-ups lying on the floor)
+function blast(x,y,r,force,kind){netEv('bl',x,y,r,force,kind||0);blastLocal(x,y,r,force,kind||0);}
+function blastLocal(x,y,r,force,kind){
+  for(const p of g.particles){
+    if(p.type!=='chunk'&&p.type!=='dot'&&p.type!=='smoke'&&p.type!=='spark'&&!(p.type==='ink'&&!p.stuck))continue;
+    const dx=p.x-x,dy=p.y-y,d=Math.hypot(dx,dy);if(d>r||d<1)continue;
+    const k=(1-d/r)*force;p.vx+=dx/d*k;p.vy+=dy/d*k-k*.35;if(p.vr!==undefined)p.vr+=rand(-10,10);
+  }
+  if(kind===1)chunks(x,y,10,MAT_ROCK,force*.9,9);
+  if(kind===2){chunks(x,y,8,['#262b36','#f08a24','#56627a'],force,8);smoke(x,y-10,7,26,'rgba(70,74,88,');}
+  if(kind===3)smoke(x,y,5,18,'rgba(255,170,90,');
+  if(g.mode!=='guest'){
+    for(const p of g.tools){if(!p.landed||p.stuck)continue;const dx=p.x-x,d=Math.abs(dx);if(d<r&&Math.abs(p.y-y)<60){p.landed=false;p.popped=true;p.bounced=false;p.vy=-force*.7*(1-d/r);p.vx=Math.sign(dx||1)*force*.4*(1-d/r);p.vr=rand(-12,12);p.surf=null;}}
+    for(const p of g.pickups){if(!p.landed)continue;const d=Math.abs(p.x-x);if(d<r&&Math.abs(p.y-y)<60){p.landed=false;p.vy=-force*.5*(1-d/r);p.surf=null;}}
+  }
+}
+function shatter(x,y,id){netEv('sh',x,y,TOOL_IDS.indexOf(id));shatterLocal(x,y,id);}
+function shatterLocal(x,y,id){const T=TOOLS[id];if(!T)return;chunks(x,y,9,T.mat,380,7);if(T.blade||id==='hammer'||id==='gauntlet')sparks(x,y,8);}
 function craterLocal(x,y,sc){
   sc=sc||1;g.kick=Math.max(g.kick,.8);g.shake=Math.max(g.shake,8);
   g.particles.push({type:'ring',x,y:y-6,vx:0,vy:0,t:0,life:.4,c:'#ff7a1a',r:70*sc});
   for(let i=0;i<12;i++)g.particles.push({type:'dot',x:x+rand(-20,20),y:y-3,vx:rand(-260,260),vy:rand(-330,-80),t:0,life:rand(.35,.7),c:i%3?'#aebbd0':'#ff9a3d',r:rand(2,5)});
   const cr=[];for(let i=0;i<6;i++){const a=rand(-1,1)*1.3,l=rand(18,42)*sc;cr.push([Math.cos(a)*l*(i%2?1:-1),Math.abs(Math.sin(a))*4]);}
   g.particles.push({type:'crack',x,y,cr,vx:0,vy:0,t:0,life:1.8});
+  chunks(x,y-2,11,MAT_ROCK,540*sc,11*sc);smoke(x,y-6,6,22*sc);blastLocal(x,y,140*sc,420,0);
 }
 // streaks and embers drawn from what a fighter is doing (runs on both sides of an online match, nothing is sent)
 function stateFx(f,dt){
   if(f.hp<=0)return;
   f.fxT=(f.fxT||0)-dt;if(f.fxT>0)return;
   const st=f.state,s=f.scale;
-  if(st==='special'){
+  if(st==='hit'&&(f.vy||0)<-380){
+    f.fxT=.03;g.particles.push({type:'line',x:f.x+rand(-18,18)*s,y:f.y-rand(10,110)*s,vx:0,vy:rand(500,800),t:0,life:.16,c:'rgba(27,35,51,.6)',len:rand(16,30)});
+  }else if(st==='special'){
     f.fxT=.028;
+    if(!(f.air||f.view&&f.view().air))g.particles.push({type:'dot',x:f.x-f.face*14*s,y:f.y-3,vx:-f.face*rand(80,240),vy:rand(-160,-40),t:0,life:.5,c:'#aebbd0',r:rand(3,6)});
     for(let i=0;i<2;i++)g.particles.push({type:'line',x:f.x-f.face*rand(0,40)*s,y:f.y-rand(18,120)*s,vx:-f.face*rand(600,1000),vy:0,t:0,life:.2,c:i?f.col:INK,len:rand(22,48)});
   }else if(st==='dive'){
     f.fxT=.022;
@@ -1293,8 +1448,8 @@ function inflict(src,def,dmg,o){
       if(o.launch&&!def.armor){def.vy=o.launch;def.onGround=false;}
       else if(!def.onGround)def.vy=Math.min(def.vy,-150);
     }
-    g.shake=Math.max(g.shake,o.heavy?10:4);
-    g.hitstop=Math.max(g.hitstop,o.heavy?.075:.035);
+    g.shake=Math.max(g.shake,o.heavy?clamp(4+dmg*.45,8,16):4);
+    g.hitstop=Math.max(g.hitstop,o.heavy?clamp(.03+dmg*.0035,.05,.11):.035);
     floater(def.x,def.y-135*def.scale,'-'+dmg,'#d1352b');
   }
   def.hp=Math.max(0,def.hp-dmg);
@@ -1339,7 +1494,7 @@ function strike(att,src,def,a){
   const done=inflict(src,def,dmg,{dir:att.face,kb:a.kb*(mega?2.4:1),stun:a.stun*(mega?1.5:1),heavy:a.heavy||mega,launch:a.launch,guard:T&&T.guard,px:(att.x+def.x)/2,py:def.y-80*def.scale});
   if(mega)src.removeHeld('mega');
   if(T&&att.tool&&att.tool.id===a.tool){
-    if(a.tool==='gauntlet'||a.tool==='sword'||a.tool==='axe'||a.tool==='hammer'||a.tool==='katana')sfx('clang');
+    if(done>0)sfx(T.blade?'cut':'bonk');else sfx('clang');
     if(done>0&&src===g.p1)track('toolhit');
     if(done>0||def.state==='block'){att.tool.uses--;if(att.tool.uses<=0)breakTool(att,false);}
   }
@@ -1423,7 +1578,7 @@ function throwBomb(f){
   g.projectiles.push({x:x0,y:y0,vx:(tx-x0)/T,vy:(ty-y0-.5*1500*T*T)/T,owner:f,t:0});
 }
 function explode(p){
-  sfx('bomb');ring(p.x,p.y,'#f08a24',95);burst(p.x,p.y,'#f08a24',22);burst(p.x,p.y,INK,10);
+  sfx('bomb');ring(p.x,p.y,'#f08a24',95);burst(p.x,p.y,'#f08a24',22);burst(p.x,p.y,INK,10);blast(p.x,p.y,170,620,2);
   g.shake=Math.max(g.shake,16);
   if(g.phase!=='fight')return;
   for(const o of enemiesOf(p.owner)){
@@ -1484,15 +1639,20 @@ function spawnTool(){
   g.tools.push({id,x:randomSafeX(),y:-40,vy:0,t:0,landed:false,rot:rand(-.5,.5)});
   sfx('drop');
 }
-function giveTool(f,id){
+function dropTool(id,x,y,uses,sf,stuckRot){
+  if(!TOOLS[id]||uses<=0||g.tools.length>=3)return;
+  g.tools.push({id,x:clamp(x,20,940),y:y-10,vy:0,t:0,landed:true,rot:stuckRot===null?0:stuckRot,surf:sf,uses,stuck:stuckRot!==null,flat:stuckRot===null});
+}
+function giveTool(f,id,uses){
   if(f===g.p1)track('tool');
-  f.tool={id,uses:TOOLS[id].uses,t:TOOL_LIFE};
+  f.tool={id,uses:uses||TOOLS[id].uses,t:TOOL_LIFE};
   sfxBy(f,'toolpick');floater(f.x,f.y-150*f.scale,TOOLS[id].name.toUpperCase(),INK);ring(f.x,f.y-70*f.scale,'#f6c928',50);
 }
 function breakTool(f,expired){
   if(!f.tool)return;
   const n=TOOLS[f.tool.id].name;
-  f.tool=null;sfxBy(f,'toolbreak');burst(f.x+f.face*30,f.y-80*f.scale,'#9aa6bb',12);
+  shatter(f.x+f.face*30*f.scale,f.y-80*f.scale,f.tool.id);
+  f.tool=null;sfxBy(f,'toolbreak');
   floater(f.x,f.y-155*f.scale,expired?n.toUpperCase()+' WORN OUT':n.toUpperCase()+' BROKE','#56627a');
 }
 function throwTool(f){
@@ -1500,8 +1660,19 @@ function throwTool(f){
   f.startAttack('toss');
   const p={id,x:f.x+f.face*24*f.scale,y:f.y-86*f.scale,vx:f.face*(T.throwV||760),vy:id==='spear'?-70:-140,rot:0,owner:f,t:0,
     dmg:T.throwDmg||TOOL_THROW_DMG,grav:T.throwG||900,hits:[],straight:id==='spear'};
-  if(T.boomer){p.boomer=true;p.uses=tl.uses;p.vy=-20;p.grav=0;p.vx=f.face*660;}
+  p.uses=tl.uses;p.vr=f.face*rand(14,20);
+  if(T.boomer){g.thrown.push(boomerProj(f,tl.uses));return;}
   g.thrown.push(p);
+}
+// a boomerang flies out on a curve, slows, turns and homes back to the thrower's hand
+function boomerProj(f,uses){
+  return {id:'boomerang',x:f.x+f.face*26*f.scale,y:f.y-92*f.scale,vx:f.face*760,vy:-170,rot:0,owner:f,t:0,face:f.face,
+    dmg:Math.max(1,Math.round(TOOLS.boomerang.throwDmg*Math.min(CFG.MAX_MULT,f.mult()*(f.dmgMul||1)))),grav:0,hits:[],boomer:true,uses};
+}
+function throwBoomer(f){
+  if(!f.tool||f.tool.id!=='boomerang')return;
+  const u=f.tool.uses-1;f.tool=null;
+  g.thrown.push(boomerProj(f,u));sfxBy(f,'whirr');
 }
 function fireArrow(f){
   const s=f.scale,m=Math.min(CFG.MAX_MULT,f.mult()*(f.dmgMul||1));
@@ -1514,15 +1685,18 @@ function updateTools(dt,fight){
     p.t+=dt;
     if(p.landed&&p.surf&&p.surf.mv){p.x+=p.surf.dx;p.y=p.surf.y-10;}
     if(!p.landed){
-      const y0=p.y;p.vy=Math.min(p.vy+500*dt,260);p.y+=p.vy*dt;
-      const sf=landOn(p.x,y0+10,p.y+10,false);
-      if(sf){p.y=sf.y-10;p.landed=true;p.surf=sf;dust(p.x,sf.y);}
+      const y0=p.y;p.vy=Math.min(p.vy+(p.popped?1500:500)*dt,p.popped?900:260);p.y+=p.vy*dt;p.x+=(p.vx||0)*dt;p.rot+=(p.vr||0)*dt;
+      const sf=p.vy>0?landOn(p.x,y0+10,p.y+10,false):null;
+      if(sf){
+        if(p.vy>150&&!p.bounced){p.bounced=true;p.y=sf.y-10;p.vy*=-.3;p.vr=rand(-5,5);p.vx=(p.vx||0)*.5;dust(p.x,sf.y);sfx('clatter');}
+        else{p.y=sf.y-10;p.landed=true;p.surf=sf;p.vx=0;p.vr=0;if(!p.bounced)dust(p.x,sf.y);}
+      }
       else if(p.y>CFG.H+40)p.t=99;
     }
     if(fight&&!p.taken){
       for(const f of g.fighters){
         if(f.hp<=0||f.tool||f.boss||f.minion||f.state==='ko')continue;
-        if(Math.abs(p.x-f.x)<30*f.scale+12&&p.y>f.y-125*f.scale&&p.y<f.y+16){p.taken=true;giveTool(f,p.id);break;}
+        if(Math.abs(p.x-f.x)<30*f.scale+12&&p.y>f.y-125*f.scale&&p.y<f.y+16){p.taken=true;giveTool(f,p.id,p.uses);break;}
       }
     }
   }
@@ -1530,36 +1704,55 @@ function updateTools(dt,fight){
   for(const p of g.thrown){
     p.t+=dt;
     const y0=p.y;
+    if(p.stuckT!==undefined){p.stuckT-=dt;if(p.stuckT<=0)p.done=true;continue;}
     if(p.boomer){
       const o=p.owner;
-      if(p.t>.42&&!p.ret){p.ret=true;p.hits=[];}
-      if(p.ret&&o&&o.hp>0){
+      if(!p.ret){
+        // outward leg: drag pulls it back along its path while it climbs and dips in an arc
+        p.vx-=p.face*1500*dt;p.vy+=380*dt;
+        if(p.vx*p.face<=60||p.t>.75){p.ret=true;p.hits=[];}
+      }else if(o&&o.hp>0){
         const dx=o.x-p.x,dy=(o.y-80*o.scale)-p.y,d=Math.hypot(dx,dy)||1;
-        p.vx+=dx/d*2800*dt;p.vy+=dy/d*2800*dt;const sp=Math.hypot(p.vx,p.vy);if(sp>800){p.vx*=800/sp;p.vy*=800/sp;}
-        if(d<44){p.done=true;if(!o.tool){o.tool={id:p.id,uses:p.uses,t:TOOL_LIFE*.7};sfxBy(o,'toolpick');}}
-      }else if(p.ret)p.vy+=600*dt;
-      p.rot+=dt*24;
-      if(p.t>3.2)p.done=true;
+        p.vx+=dx/d*3000*dt;p.vy+=dy/d*3000*dt;const sp=Math.hypot(p.vx,p.vy);if(sp>820){p.vx*=820/sp;p.vy*=820/sp;}
+        if(d<46){
+          p.done=true;
+          if(!o.tool){if(p.uses>0){o.tool={id:p.id,uses:p.uses,t:TOOL_LIFE*.8};sfxBy(o,'catch');}else{o.tool={id:p.id,uses:1,t:1};breakTool(o,false);}}
+        }
+      }else p.vy+=700*dt;
+      p.rot+=dt*26;
+      if(p.t>3.4)p.done=true;
     }else{
       p.vy+=p.grav*dt;
-      if(p.arrow||p.straight)p.rot=Math.atan2(p.vy,p.vx);else p.rot+=dt*18*Math.sign(p.vx);
+      if(p.arrow||p.straight)p.rot=Math.atan2(p.vy,p.vx);else p.rot+=(p.vr||18*Math.sign(p.vx))*dt;
     }
     p.x+=p.vx*dt;p.y+=p.vy*dt;
     if(fight&&!p.done){
       for(const o of enemiesOf(p.owner)){
         if(p.hits.indexOf(o)>=0)continue;
-        if(Math.abs(p.x-o.x)<20*o.scale+14&&p.y>o.y-128*o.scale&&p.y<o.y+4){
+        if(!p.hitOnce&&Math.abs(p.x-o.x)<20*o.scale+14&&p.y>o.y-128*o.scale&&p.y<o.y+4){
           p.hits.push(o);if(!p.boomer)p.done=true;sfx(p.arrow?'hit':'clang');
           inflict(p.owner,o,p.dmg,{dir:Math.sign(p.vx)||1,kb:p.arrow?200:360,stun:p.arrow?.3:.45,heavy:!p.arrow,px:p.x,py:p.y});
           if(p.owner===g.p1)track('toolhit');
-          if(p.boomer&&!p.ret){p.ret=true;p.hits=[o];p.t=Math.max(p.t,.42);p.vx*=-.4;}
+          if(p.boomer&&!p.ret){p.ret=true;p.hits=[o];p.vx*=-.3;}
+          else if(!p.arrow&&!p.boomer){p.done=false;p.hitOnce=true;p.vx*=-.25;p.vy=-220;p.vr*=-.6;}
           burst(p.x,p.y,'#9aa6bb',8);break;
         }
       }
     }
     if(!p.done&&!p.boomer){
       const sf=p.vy>0?landOn(p.x,y0+4,p.y+4,false):null;
-      if(sf){p.done=true;if(p.arrow)burst(p.x,sf.y-4,'#9aa6bb',5);else{sfx('toolbreak');burst(p.x,sf.y-8,'#9aa6bb',10);}}
+      if(sf){
+        const sp=Math.hypot(p.vx,p.vy);
+        if(p.arrow){p.y=sf.y+3;p.vx=p.vy=0;p.stuckT=2.6;dust(p.x,sf.y);sfx('thunk');}
+        else if(p.straight&&sp>420&&p.vy>140){
+          // the spear buries its tip and stands in the ground, ready to be pulled out
+          p.done=true;sfx('thunk');dust(p.x,sf.y);
+          dropTool(p.id,p.x,sf.y,p.uses,sf,p.rot);
+        }else if((p.bounces||0)<2&&sp>160){
+          p.bounces=(p.bounces||0)+1;p.y=sf.y-4;p.vy*=-.34;p.vx*=.55;p.vr=(p.vr||10)*-.55;sfx('clatter');
+          sparks(p.x,sf.y-2,4);
+        }else{p.done=true;dropTool(p.id,p.x,sf.y,p.uses,sf,null);}
+      }
       else if(p.y>CFG.H+60||p.x<-80||p.x>CFG.W+80)p.done=true;
     }
     if(p.boomer&&(p.x<-220||p.x>CFG.W+220||p.y>CFG.H+80))p.done=true;
@@ -1630,7 +1823,7 @@ function aiThink(f){
   }
   if(TT&&TT.ranged&&!f.clone){
     if(d<150){mv(-dir);if(Math.random()<.2)inp.jump=.15;return;}
-    if(a.cool<=0&&d<640&&Math.abs(o.y-f.y)<90){inp.punch=.2;a.cool=P.cool*rand(.45,.8);return;}
+    if(a.cool<=0&&d<(TT.toss?460:640)&&Math.abs(o.y-f.y)<90){inp.punch=.2;a.cool=P.cool*rand(.45,.8);return;}
     if(d>520)mv(dx);return;
   }
   if(!f.clone&&TT&&d>200&&d<560&&Math.random()<(TT.boomer||TT.throwDmg?.3:.12)){inp.throw=.2;return;}
@@ -1998,6 +2191,15 @@ function updateFx(dt){
       continue;
     }
     if(p.type==='star'||p.type==='arc'||p.type==='bolt'||p.type==='crack')continue;
+    if(p.type==='chunk'||p.type==='spark'){
+      if(p.rest)continue;
+      const y0=p.y;p.vy+=(p.type==='spark'?900:1500)*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.vr)p.rot+=p.vr*dt;
+      const sf=p.vy>0?landOn(p.x,y0,p.y,false):null;
+      if(sf){p.y=sf.y-(p.type==='spark'?1:p.h*.4);p.vy*=-(p.type==='spark'?.3:.38);p.vx*=.62;if(p.vr)p.vr*=.5;if(Math.abs(p.vy)<70){p.vy=0;p.vx=0;p.rest=p.type==='chunk';}}
+      else if(p.y>CFG.H+40)p.t=p.life;
+      continue;
+    }
+    if(p.type==='smoke'){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.25,dt);p.vy=p.vy*Math.pow(.5,dt)-26*dt;p.r+=p.grow*dt;continue;}
     p.x+=p.vx*dt;p.y+=p.vy*dt;
     if(p.type==='line'){p.vx*=Math.pow(.02,dt);p.vy*=Math.pow(.02,dt);}
     else if(p.type==='dot')p.vy+=260*dt;
@@ -2674,17 +2876,42 @@ function drawToolIcon(c,id,x,y,r){
   c.restore();c.restore();
 }
 function drawToolPickup(p){
-  const bob=p.landed?Math.sin(g.clock*4+p.x)*2:0,y=p.y+bob,left=TOOL_GROUND_LIFE-p.t;
+  const bob=p.landed&&!p.stuck&&!p.flat?Math.sin(g.clock*4+p.x)*2:0,y=p.y+bob,left=TOOL_GROUND_LIFE-p.t;
   if(left<2.5&&Math.floor(g.clock*8)%2===0)ctx.globalAlpha=.35;
   const gy=groundY(p.x,p.y);if(gy!==null){ctx.fillStyle='rgba(27,35,51,.16)';ctx.beginPath();ctx.ellipse(p.x,gy+5,24,4,0,0,TAU);ctx.fill();}
   ctx.beginPath();ctx.arc(p.x,y-6,32+Math.sin(g.clock*6)*2,0,TAU);ctx.strokeStyle='rgba(246,201,40,.8)';ctx.lineWidth=3;ctx.setLineDash([6,6]);ctx.lineDashOffset=-g.clock*30;ctx.stroke();ctx.setLineDash([]);
-  const T=TOOLS[p.id],r=T.L>45&&p.id!=='bow'?p.rot*.3:p.rot*.5;
-  drawToolShape(ctx,p.id,p.x-Math.cos(r)*T.mid,y-6-Math.sin(r)*T.mid,r,g.clock);
+  const T=TOOLS[p.id];
+  if(p.stuck){const r=p.rot,tx=p.x,ty=p.y+16;drawToolShape(ctx,p.id,tx-Math.cos(r)*70,ty-Math.sin(r)*70,r,g.clock);}
+  else{const r=p.flat?p.rot:(T.L>45&&p.id!=='bow'?p.rot*.3:p.rot*.5);drawToolShape(ctx,p.id,p.x-Math.cos(r)*T.mid,y-6-Math.sin(r)*T.mid,r,g.clock);}
   if(p.landed)otxt(TOOLS[p.id].name,p.x,y-44,15,INK,'center',FD);
   ctx.globalAlpha=1;
 }
 function drawThrown(){
   for(const p of g.thrown)drawToolShape(ctx,p.id,p.x,p.y,p.rot,g.clock);
+}
+const SWING_STATES={punch:1,upper:1,air:1};
+function weaponTrail(f,v){
+  const T=v.tool&&TOOLS[v.tool],W=f.wt||(f.wt=[]),now=g.clock;
+  if(T&&T.tip&&SWING_STATES[v.state]&&!v.frozen){
+    const P=poseOf(v),s=v.scale,neckY=P.hip-P.torso,shX=P.lean*.9,shY=neckY+6;
+    const ex=shX+Math.cos(P.aF[0])*20,ey=shY+Math.sin(P.aF[0])*20,hx=ex+Math.cos(P.aF[1])*20,hy=ey+Math.sin(P.aF[1])*20,c=Math.cos(P.aF[1]),sn=Math.sin(P.aF[1]);
+    const L=(lx,ly)=>[v.x+v.face*s*lx,v.y+s*ly];
+    const last=W[W.length-1],tp=L(hx+c*T.tip,hy+sn*T.tip);
+    if(last&&Math.hypot(tp[0]-last.b[0],tp[1]-last.b[1])>150)W.length=0;
+    if(!W.length||Math.hypot(tp[0]-W[W.length-1].b[0],tp[1]-W[W.length-1].b[1])>1.5)W.push({a:L(hx+c*T.base,hy+sn*T.base),b:tp,t:now});
+  }
+  while(W.length&&(now-W[0].t>.12||now<W[0].t))W.shift();
+  if(W.length<2)return;
+  const col=T?T.fx:'#ffffff';
+  ctx.save();ctx.lineJoin='round';
+  for(let i=1;i<W.length;i++){
+    const A=W[i-1],B=W[i],k=1-(now-A.t)/.12;
+    ctx.globalAlpha=clamp(k,0,1)*.85;ctx.fillStyle=col;
+    ctx.beginPath();ctx.moveTo(A.a[0],A.a[1]);ctx.lineTo(A.b[0],A.b[1]);ctx.lineTo(B.b[0],B.b[1]);ctx.lineTo(B.a[0],B.a[1]);ctx.closePath();ctx.fill();
+  }
+  ctx.globalAlpha=.7;ctx.strokeStyle='rgba(27,35,51,.5)';ctx.lineWidth=1.5;ctx.beginPath();
+  for(const p of W)ctx.lineTo(p.b[0],p.b[1]);ctx.stroke();
+  ctx.restore();
 }
 function drawFighter(f){
   if(f.rag){f.rag.draw(ctx,f.clone?.72:f.alpha,PAPER);return;}
@@ -2695,7 +2922,9 @@ function drawFighter(f){
     ctx.beginPath();ctx.ellipse(f.x,gy+5,(28-lift*10)*s,6*s,0,0,TAU);ctx.fill();
   }
   for(const tr of f.trail)drawBody(ctx,tr.v,clamp(tr.life/.26,0,1)*.3,PAPER);
-  drawBody(ctx,f.view(),f.clone?.72:f.alpha,PAPER);
+  const fv=f.view();
+  weaponTrail(f,fv);
+  drawBody(ctx,fv,f.clone?.72:f.alpha,PAPER);
   if(f.has('shield')){
     ctx.beginPath();ctx.arc(f.x,f.y-62*s,78*s,0,TAU);
     ctx.fillStyle='rgba(246,201,40,.16)';ctx.fill();
@@ -2763,9 +2992,20 @@ function drawParticles(){
         ctx.strokeStyle='rgba(27,35,51,.55)';ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(0,0,p.r+p.w*.5,lo,hi);ctx.stroke();
       }
       ctx.restore();
+    }else if(p.type==='chunk'){
+      ctx.globalAlpha=clamp((p.life-p.t)/.5,0,1);ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);
+      ctx.fillStyle=p.c;ctx.strokeStyle=INK;ctx.lineWidth=1.3;ctx.beginPath();
+      if(p.tri){ctx.moveTo(-p.w/2,p.h/2);ctx.lineTo(p.w/2,p.h/2);ctx.lineTo(0,-p.h/2);ctx.closePath();}else ctx.rect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.fill();ctx.stroke();ctx.restore();
+    }else if(p.type==='spark'){
+      ctx.globalAlpha=clamp(1-p.t/p.life,0,1);const m=Math.hypot(p.vx,p.vy)||1,l=Math.min(14,m*.025)+2;
+      ctx.strokeStyle=p.t<p.life*.4?'#fff6b0':'#ffb02e';ctx.lineWidth=2.4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x-p.vx/m*l,p.y-p.vy/m*l);ctx.stroke();
+    }else if(p.type==='smoke'){
+      ctx.globalAlpha=1;ctx.fillStyle=p.c+(.32*(1-p.t/p.life)).toFixed(3)+')';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,TAU);ctx.fill();
     }else if(p.type==='bolt'){
       const q=p.t/p.life;ctx.globalAlpha=q<.5?1:(1-q)*2;ctx.lineJoin='round';ctx.lineCap='round';
-      for(const [w,col] of [[12,'rgba(160,92,255,.45)'],[6,'#fff27a'],[2.5,'#ffffff']]){ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();for(const pt of p.pts)ctx.lineTo(pt[0],pt[1]);ctx.stroke();}
+      for(const [w,col] of [[12,'rgba(160,92,255,.45)'],[6,'#fff27a'],[2.5,'#ffffff']]){ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();for(const pt of p.pts)ctx.lineTo(pt[0],pt[1]);ctx.stroke();
+        if(p.br){ctx.lineWidth=w*.45;for(const L of p.br){ctx.beginPath();for(const pt of L)ctx.lineTo(pt[0],pt[1]);ctx.stroke();}}}
       ctx.fillStyle='rgba(255,242,122,.5)';ctx.beginPath();ctx.arc(p.x,p.y,30*(1-q)+8,0,TAU);ctx.fill();
     }else if(p.type==='crack'){
       ctx.globalAlpha=clamp((p.life-p.t)/.8,0,1);ctx.strokeStyle=INK;ctx.lineWidth=2.5;ctx.beginPath();
@@ -3246,7 +3486,7 @@ function sendSnap(){
   const cl=g.clones.slice(0,4);w.u8(cl.length);for(const c of cl)encF(w,c);
   const pi=g.pickups.slice(0,12);w.u8(pi.length);for(const p of pi){w.u8(IDS.indexOf(p.id));w.i16(p.x*10);w.i16(p.y*10);w.u8((p.landed?1:0)|(p.pulled?2:0));w.u16(p.t*100);}
   const pr=g.projectiles.slice(0,6);w.u8(pr.length);for(const p of pr){w.i16(p.x*10);w.i16(p.y*10);w.u16(p.t*100);}
-  const tl=g.tools.slice(0,3);w.u8(tl.length);for(const p of tl){w.u8(TOOL_IDS.indexOf(p.id));w.i16(p.x*10);w.i16(p.y*10);w.u8(p.landed?1:0);w.u16(p.t*100);w.i16(p.rot*1000);}
+  const tl=g.tools.slice(0,3);w.u8(tl.length);for(const p of tl){w.u8(TOOL_IDS.indexOf(p.id));w.i16(p.x*10);w.i16(p.y*10);w.u8((p.landed?1:0)|(p.stuck?2:0)|(p.flat?4:0));w.u16(p.t*100);w.i16(p.rot*1000);}
   const th=g.thrown.slice(0,8);w.u8(th.length);for(const p of th){w.u8(THROWN_IDS.indexOf(p.id));w.i16(p.x*10);w.i16(p.y*10);w.i16((((p.rot%TAU)+TAU)%TAU)*1000);}
   let tj=Object.keys(tail).length?enc.encode(JSON.stringify(tail)):null;
   if(tj&&tj.length>20000)tj=null;
@@ -3265,7 +3505,7 @@ function decodeSnap(b){
   n=r.u8();if(n>6)return null;m.pr=[];
   for(let i=0;i<n;i++){const x=r.i16()/10,y=r.i16()/10,t=r.u16()/100;m.pr.push([x,y,t]);}
   n=r.u8();if(n>3)return null;m.tl=[];
-  for(let i=0;i<n;i++){const id=r.u8(),x=r.i16()/10,y=r.i16()/10,l=r.u8(),t=r.u16()/100,rot=r.i16()/1000;m.tl.push([id,x,y,l===1?1:0,t,rot]);}
+  for(let i=0;i<n;i++){const id=r.u8(),x=r.i16()/10,y=r.i16()/10,l=r.u8(),t=r.u16()/100,rot=r.i16()/1000;m.tl.push([id,x,y,l&7,t,rot]);}
   n=r.u8();if(n>8)return null;m.th=[];
   for(let i=0;i<n;i++){const id=r.u8(),x=r.i16()/10,y=r.i16()/10,rot=r.i16()/1000;m.th.push([id,x,y,rot]);}
   const tl=r.u16();
@@ -3345,7 +3585,7 @@ class Puppet{
 /* --- guest prediction: your own movement, jumps and basic attacks show instantly, then get corrected by the host --- */
 const NET_INTERP=60;
 const FREE_STATES={idle:1,walk:1,jump:1,block:1};
-const LOCAL_SFX={punch:1,upper:1,kick:1,jump:1,airjump:1,slash:1,swoosh:1,gauntlet:1,chop:1,thrust:1,whirr:1,bowshot:1};
+const LOCAL_SFX={punch:1,upper:1,kick:1,jump:1,airjump:1,slash:1,swoosh:1,gauntlet:1,chop:1,thrust:1,whirr:1,bowshot:1,toss:1};
 const pred={on:false,x:0,y:0,vx:0,vy:0,ground:true,jumping:false,coyote:0,airJumps:1,hist:[],sent:[],act:null,last:null,wp:0,face:-1,chain:0,chainT:0,jumpBuf:0,block:false};
 function predReset(){pred.on=false;pred.hist=[];pred.sent=[];pred.act=null;pred.last=null;pred.chain=0;pred.chainT=0;pred.jumpBuf=0;}
 function predFree(){
@@ -3483,6 +3723,8 @@ function playEv(e){
     case 'im':impactLocal(n(1,-200,1200),n(2,-400,700),e[3]===1,e[4]===-1?-1:1,col(5));break;
     case 'ar':g.particles.push({type:'arc',x:n(1,-200,1200),y:n(2,-400,700),face:e[3]===-1?-1:1,r:n(4,0,300),a0:n(5,-7,7),a1:n(6,-7,7),w:n(7,0,40),c:col(8),th:e[9]===1?1:0,t:0,life:.17,vx:0,vy:0});break;
     case 'bo':boltLocal(n(1,-200,1200),n(2,-400,700));break;
+    case 'bl':blastLocal(n(1,-200,1200),n(2,-400,700),n(3,0,400),n(4,0,1200),num(e[5],0,3,0)|0);break;
+    case 'sh':if(Number.isInteger(e[3])&&TOOL_IDS[e[3]])shatterLocal(n(1,-200,1200),n(2,-400,700),TOOL_IDS[e[3]]);break;
     case 'cr':craterLocal(n(1,-200,1200),n(2,-400,700),num(e[3],.3,3,1));break;
   }
 }
@@ -3506,7 +3748,7 @@ function applySnap(m){
     .map(a=>({id:IDS[a[0]],x:num(a[1],-50,1010,0),y:num(a[2],-100,600,0),landed:a[3]===1,t:num(a[4],0,20,0),pulled:a[5]===1}));
   g.projectiles=(Array.isArray(m.pr)?m.pr.slice(0,6):[]).filter(Array.isArray).map(a=>({x:num(a[0],-100,1100,0),y:num(a[1],-300,700,0),t:num(a[2],0,10,0)}));
   g.tools=(Array.isArray(m.tl)?m.tl.slice(0,3):[]).filter(a=>Array.isArray(a)&&Number.isInteger(a[0])&&TOOL_IDS[a[0]])
-    .map(a=>({id:TOOL_IDS[a[0]],x:num(a[1],-50,1010,0),y:num(a[2],-100,600,0),landed:a[3]===1,t:num(a[4],0,30,0),rot:num(a[5],-10,10,0)}));
+    .map(a=>({id:TOOL_IDS[a[0]],x:num(a[1],-50,1010,0),y:num(a[2],-100,600,0),landed:(a[3]&1)===1,stuck:(a[3]&2)===2,flat:(a[3]&4)===4,t:num(a[4],0,30,0),rot:num(a[5],-10,10,0)}));
   g.thrown=(Array.isArray(m.th)?m.th.slice(0,8):[]).filter(a=>Array.isArray(a)&&Number.isInteger(a[0])&&THROWN_IDS[a[0]])
     .map(a=>({id:THROWN_IDS[a[0]],x:num(a[1],-100,1100,0),y:num(a[2],-300,700,0),rot:num(a[3],-1e6,1e6,0)}));
   if(Array.isArray(m.ev))for(const e of m.ev.slice(0,80))playEv(e);
