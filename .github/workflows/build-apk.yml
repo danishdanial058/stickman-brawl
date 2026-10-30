@@ -25,6 +25,11 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Use this repository's signing key
+        run: |
+          mkdir -p ~/.android
+          if [ -f debug.keystore ]; then cp debug.keystore ~/.android/debug.keystore; fi
+
       - name: Create the Android project around index.html
         run: |
           set -e
@@ -62,25 +67,25 @@ jobs:
           plugins {
               id 'com.android.application'
           }
-          
+
           android {
               namespace 'com.stickmanbrawl.game'
               compileSdk 34
-          
+
               defaultConfig {
                   applicationId "com.stickmanbrawl.game"
                   minSdk 24
                   targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
+                  versionCode((System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger())
+                  versionName "1." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
               }
-          
+
               buildTypes {
                   release {
                       minifyEnabled false
                   }
               }
-          
+
               compileOptions {
                   sourceCompatibility JavaVersion.VERSION_17
                   targetCompatibility JavaVersion.VERSION_17
