@@ -6,6 +6,7 @@ on:
       - 'server/**'
       - 'render.yaml'
       - 'docs/**'
+      - 'crazygames/**'
   workflow_dispatch:
 
 permissions:

@@ -317,6 +317,7 @@ body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bot
   </div>
 </div>
 <p class="toast" id="dailyToast" role="status" hidden></p>
+<div class="scr" id="adOv" hidden style="z-index:60;align-items:center;justify-content:center"><p class="hint" style="font-size:18px">Advertisement…</p></div>
 
 <section class="scr" id="scrPlay" hidden aria-label="Choose a mode">
   <div class="scr-hd"><button class="back" type="button" data-back>&#8249; Back</button><h2>Choose a mode</h2></div>
@@ -477,6 +478,21 @@ body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bot
 <script>
 (()=>{
 'use strict';
+/* CrazyGames: the CrazyGames build loads their SDK and starts this script after SDK.init(). Everywhere else CG is null. */
+const CG=(window.__CG&&window.__CG.game)?window.__CG:null;
+function sGet(k){
+  try{if(CG&&CG.data){const v=CG.data.getItem(k);if(v!=null)return v;}}catch(e){}
+  try{return localStorage.getItem(k);}catch(e){return null;}
+}
+function sSet(k,v){
+  try{if(CG&&CG.data)CG.data.setItem(k,v);}catch(e){}
+  try{localStorage.setItem(k,v);}catch(e){}
+}
+let cgPlaying=false;
+function cgGameplay(on){
+  if(!CG||cgPlaying===on)return;cgPlaying=on;
+  try{on?CG.game.gameplayStart():CG.game.gameplayStop();}catch(e){}
+}
 
 /* ================= CONSTANTS ================= */
 const TAU=Math.PI*2, INK='#1b2333';
@@ -651,9 +667,9 @@ const DEF_SAVE={diff:'normal',mode:'arcade',skin:'band',arena:'notebook',streak:
 function loadSave(){
   let s={};
   try{
-    const raw=localStorage.getItem(SAVE_KEY);
+    const raw=sGet(SAVE_KEY);
     if(raw)s=JSON.parse(raw)||{};
-    else{const old=JSON.parse(localStorage.getItem('stickman-brawl-v1')||'null');if(old&&typeof old==='object')s={best:old.best|0,streak:old.streak|0,diff:old.diff};}
+    else{const old=JSON.parse(sGet('stickman-brawl-v1')||'null');if(old&&typeof old==='object')s={best:old.best|0,streak:old.streak|0,diff:old.diff};}
   }catch(e){s={};}
   const o=Object.assign({},DEF_SAVE,(s&&typeof s==='object')?s:{});
   if(!DIFF_MOD[o.diff])o.diff='normal';
@@ -665,7 +681,7 @@ function loadSave(){
   o.xp=Math.max(0,Number(o.xp)||0);o.coins=Math.max(0,Math.floor(Number(o.coins)||0));
   return o;
 }
-function writeSave(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));}catch(e){}}
+function writeSave(){sSet(SAVE_KEY,JSON.stringify(save));}
 const save=loadSave();
 function isUnlocked(k){
   switch(k.unlock){
@@ -2129,7 +2145,7 @@ function afterRound(){
   }
 }
 function endGame(win){
-  g.phase='over';
+  g.phase='over';cgGameplay(false);
   const m=g.mode,D=cap(g.diffUsed),s=g.stats;
   const R={title:'',sub:'',primary:'Rematch',act:()=>startGame(m),share:''};
   R.reward=awardFight(m==='online'&&g.noContest?null:(m==='survival'?g.wave>=5:win),{arcade:m==='arcade'});
@@ -2178,7 +2194,7 @@ function endGame(win){
   g.endBanner=g.noContest?{text:'NO CONTEST',color:'#56627a'}:m==='duo'?{text:win?'P1 WINS':'P2 WINS',color:win?'#1d4fd7':'#d1352b'}
     :{text:win?(m==='arcade'?'CHAMPION!':'VICTORY'):(m==='survival'?'WIPED OUT':'DEFEAT'),color:win?'#1d4fd7':'#d1352b'};
   if(!g.noContest)sfx(win||m==='duo'?'win':'lose');
-  showResults(R,newly);
+  setTimeout(()=>cgBreakAd(()=>showResults(R,newly)),900);
 }
 function continueArcade(){
   g.continues--;g.score=Math.floor(g.score/2);g.wins=[0,0];g.endBanner=null;g.paused=false;
@@ -2377,7 +2393,7 @@ function pauseToggle(){
   }
   $('pauseNote').hidden=true;
   if(!g.paused&&!playingNow())return;
-  g.paused=!g.paused;clearHolds();
+  g.paused=!g.paused;clearHolds();cgGameplay(!g.paused);
   $('pauseOv').hidden=!g.paused;
   $('pauseBtn').textContent=g.paused?'Resume':'Pause';
   sfx('pause');
@@ -4417,11 +4433,23 @@ function refreshMenu(){
 }
 function setPlaying(on){
   document.body.classList.toggle('playing',on);
+  cgGameplay(on);
   $('menu').hidden=on;$('results').hidden=true;
   if(on)closeScr();
   $('pauseBtn').textContent='Pause';
 }
 let resultAction=null;
+let adBusy=false;
+function cgBreakAd(then){
+  if(!CG||!CG.ad||g.mode==='online'||g.mode==='guest'){then();return;}
+  adBusy=true;let done=false,st=false;
+  const end=()=>{if(done)return;done=true;adBusy=false;$('adOv').hidden=true;try{if(ac&&!muted)ac.resume();}catch(e){}then();};
+  $('adOv').hidden=false;
+  try{
+    CG.ad.requestAd('midgame',{adStarted:()=>{st=true;try{if(ac)ac.suspend();}catch(e){}},adFinished:end,adError:end});
+    setTimeout(()=>{if(!done&&!st)end();},4000);
+  }catch(e){end();}
+}
 function showResults(R,newly){
   $('pauseOv').hidden=true;$('pauseBtn').textContent='Pause';
   document.body.classList.remove('playing');
@@ -4503,7 +4531,7 @@ function syncToggles(){
 $('musicBtn').addEventListener('click',e=>{ensureAudio();MUS.on=!MUS.on;save.music=MUS.on;writeSave();syncToggles();e.currentTarget.blur();});
 $('soundBtn').addEventListener('click',e=>{ensureAudio();muted=!muted;save.muted=muted;writeSave();syncToggles();e.currentTarget.blur();});
 const fsBtn=$('fsBtn'),gameEl=document.documentElement;
-if(IS_APP||!(document.fullscreenEnabled&&gameEl.requestFullscreen))fsBtn.hidden=true;
+if(IS_APP||CG||!(document.fullscreenEnabled&&gameEl.requestFullscreen))fsBtn.hidden=true;
 fsBtn.addEventListener('click',()=>{
   ensureAudio();
   try{
@@ -4534,10 +4562,21 @@ for(const id of TOOL_IDS){
   drawToolIcon(c.getContext('2d'),id,44,44,38);
 }
 buildMenu();
+if(CG){
+  try{const st=CG.game.settings;if(st&&st.muteAudio){muted=true;MUS.on=false;}
+    CG.game.addSettingsChangeListener(ns=>{if(ns&&ns.muteAudio){muted=true;MUS.on=false;syncToggles();}});}catch(e){}
+  try{CG.user.getUser().then(u=>{if(u&&u.username){save.name=cleanName(u.username);writeSave();refreshMenu();}}).catch(()=>{});}catch(e){}
+}
 questsEnsure();
 showDaily(dailyCheck());
 refreshMenu();syncToggles();
 startDemo();
+// CrazyGames: a brand-new player lands in a fight right away (instant multiplayer goes straight to matchmaking)
+if(CG){
+  let im=false;try{im=!!CG.game.isInstantMultiplayer;}catch(e){}
+  if(im)setTimeout(()=>startGame('online'),300);
+  else if(!save.xp&&!save.wins){save.mode='arcade';setTimeout(()=>startGame('arcade'),300);}
+}
 
 let last=0,padReady=false;
 function loop(ts){
