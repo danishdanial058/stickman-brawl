@@ -3207,6 +3207,8 @@ function render(){
    Netcode: the inviter hosts and runs the whole fight. The guest sends button state up and draws the snapshots that come back.
    Everything received is treated as untrusted: parsed defensively, type-checked and clamped. */
 const IS_APP=document.body.classList.contains('app');
+// the claude.ai preview sandbox blocks outside connections; the app and the real website can play online
+const PREVIEW=/claude|anthropic/i.test(location.hostname);
 try{if(IS_APP||matchMedia('(hover:none)').matches)document.body.classList.add('touch');}catch(e){}
 const NET_PREFIX='sbx/v4';   // short topic names: every byte counts at 30 snapshots a second
 const NET_SERVER='wss://stickman-brawl-server.onrender.com/mqtt';   // our own server on Render (Singapore)
@@ -3302,7 +3304,7 @@ function netConnect(){
     if(!was){
       net.bi++;net.tries++;
       if(net.tries<NET_MAX_TRIES){setTimeout(()=>{if(!net.c&&net.state!=='idle')netConnect();},1500);netStatus();return;}
-      net.err=IS_APP?'Can\'t reach the online server. Check your internet connection, then try again.'
+      net.err=!PREVIEW?'Can\'t reach the online server. Check your internet connection, then try again.'
         :'Can\'t reach the online server from this web preview. Online play works in the Android app.';
       if(net.state==='match')netOppLeft(true);
       netStatus();return;
@@ -4317,7 +4319,7 @@ function refreshMenu(){
   $('diffField').hidden=!mode.diff;
   $('nameField').hidden=mode.id!=='online';
   if(document.activeElement!==$('nameInput'))$('nameInput').value=save.name;
-  $('modeNote').textContent=mode.note+(mode.id==='online'&&!IS_APP?' This web preview can\'t connect, so play online from the Android app.':'');
+  $('modeNote').textContent=mode.note+(mode.id==='online'&&PREVIEW?' This web preview can\'t connect, so play online from the Android app.':'');
   $('fightBtn').textContent=mode.id==='online'?'Find a player':'Fight!';
   const parts=[];
   if(save.best)parts.push('Best score '+fmt(save.best));

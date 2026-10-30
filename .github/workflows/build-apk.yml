@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - 'server/**'
       - 'render.yaml'
+      - 'docs/**'
   workflow_dispatch:
 
 permissions:
