@@ -7,7 +7,7 @@ const crypto = require('crypto');
 
 const PORT = Number(process.env.PORT) || 8899;
 const HOST = process.env.HOST || '0.0.0.0';
-const PREFIX = 'stickmanbrawl-dd058/';   // only this game's topics are allowed
+const PREFIXES = ['sbx/', 'stickmanbrawl-dd058/'];   // only this game's topics are allowed (new short prefix, old one for older app builds)
 const MAX_CONN = 1000;                    // total connections
 const MAX_PACKET = 32 * 1024;             // bytes per MQTT packet
 const MAX_SUBS = 16;                      // topics per connection
@@ -89,7 +89,7 @@ server.on('upgrade', (req, sock) => {
   });
 });
 
-function topicOk(t) { return t.length < 200 && t.startsWith(PREFIX) && !/[#+\u0000]/.test(t); }
+function topicOk(t) { return t.length < 200 && PREFIXES.some(p => t.startsWith(p)) && !/[#+\u0000]/.test(t); }
 
 function onMqtt(c, data) {
   c.mq = Buffer.concat([c.mq, data]);
