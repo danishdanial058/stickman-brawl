@@ -967,7 +967,7 @@ function collect(f,p){
   if(f===g.p1)g.stats.pickups++;
   const foes=enemiesOf(f);
   if(id==='health'){f.hp=Math.min(f.maxHp,f.hp+25);sfx('health');floater(f.x,f.y-165*f.scale,'+25','#2fa36b');return;}
-  if(id==='freeze'){for(const o of foes){o.freezeT=2;o.atk=null;o.roll=null;ring(o.x,o.y-60*o.scale,'#4cc8e8',70);}sfx('freeze');return;}
+  if(id==='freeze'){for(const o of foes){o.freezeT=2;o.atk=null;o.roll=null;o.invuln=0;ring(o.x,o.y-60*o.scale,'#4cc8e8',70);}sfx('freeze');return;}
   if(id==='reverse'){for(const o of foes)o.reverseT=4;sfx('reverse');return;}
   if(id==='bomb'){sfx('pickup');sfx('throw');throwBomb(f);return;}
   const refreshed=addHeld(f,id);
@@ -991,7 +991,7 @@ function updatePickups(dt,fight){
     }
     if(fight&&!p.taken){
       for(const f of g.fighters){
-        if(f.hp<=0||f.minion)continue;
+        if(f.hp<=0||f.minion||f.boss)continue;
         if(Math.abs(p.x-f.x)<28*f.scale+14&&p.y>f.y-125*f.scale&&p.y<f.y+14){p.taken=true;collect(f,p);break;}
       }
     }
@@ -1178,6 +1178,7 @@ function setArena(id){
 function startGame(mode){
   ensureAudio();
   if(mode==='online'){netStartSearch();return;}
+  if(net.state!=='idle')netLeave();
   g.mode=mode;g.diffUsed=save.diff;g.score=0;g.wins=[0,0];g.round=1;g.stage=0;g.continues=CFG.CONTINUES;g.wave=0;
   g.endBanner=null;g.paused=false;g.stats=newStats();g.unlockBefore=unlockedIds();
   $('pauseOv').hidden=true;
@@ -1186,6 +1187,7 @@ function startGame(mode){
   if(mode==='survival')startSurvival();else startRound();
 }
 function startDemo(){
+  $('pauseOv').hidden=true;
   g.mode='demo';g.wins=[0,0];g.round=1;g.stage=0;g.score=0;g.stats=newStats();g.endBanner=null;g.paused=false;
   g.demoA=Math.floor(Math.random()*ROSTER.length);
   do{g.demoB=Math.floor(Math.random()*ROSTER.length);}while(g.demoB===g.demoA);
@@ -1314,9 +1316,9 @@ function endGame(win){
     R.share=win?'I beat the Rival '+g.wins[0]+'-'+g.wins[1]+' on '+D+' in Stickman Brawl, '+fmt(g.score)+' points and a '+s.maxCombo+'-hit combo.'
       :'The Rival beat me '+g.wins[1]+'-'+g.wins[0]+' on '+D+' in Stickman Brawl. Rematch incoming.';
   }else if(m==='online'){
-    if(win){save.onlineWins++;save.wins++;}
+    if(win&&!g.noContest){save.onlineWins++;save.wins++;}
     const opp=g.p2?g.p2.name:'your opponent';
-    R.title=win?'You win!':'You lose';
+    R.title=g.noContest?'Match ended':(win?'You win!':'You lose');
     R.sub=g.forfeit?g.forfeit:'Rounds '+g.wins[0]+'–'+g.wins[1]+' against '+opp+'.';
     if(g.forfeit){R.primary='Find a new opponent';R.act=netStartSearch;}
     else{R.primary='Rematch';R.act=requestRematch;R.alt=true;netSend({t:'end',w:g.wins});}
@@ -1349,9 +1351,9 @@ function endGame(win){
   writeSave();
   const before=g.unlockBefore||new Set();
   const newly=SKINS.filter(k=>!before.has(k.id)&&isUnlocked(k));
-  g.endBanner=m==='duo'?{text:win?'P1 WINS':'P2 WINS',color:win?'#1d4fd7':'#d1352b'}
+  g.endBanner=g.noContest?{text:'NO CONTEST',color:'#56627a'}:m==='duo'?{text:win?'P1 WINS':'P2 WINS',color:win?'#1d4fd7':'#d1352b'}
     :{text:win?(m==='arcade'?'CHAMPION!':'VICTORY'):(m==='survival'?'WIPED OUT':'DEFEAT'),color:win?'#1d4fd7':'#d1352b'};
-  sfx(win||m==='duo'?'win':'lose');
+  if(!g.noContest)sfx(win||m==='duo'?'win':'lose');
   showResults(R,newly);
 }
 function continueArcade(){
@@ -2286,7 +2288,7 @@ function look(f){return {n:f.name,c:f.col,b:f.bar,h:f.hat,a:f.acc,al:f.alpha};}
 function startInfo(){return {t:'start',ar:g.arena.id,f:[look(g.p1),look(g.p2)]};}
 function hostStart(){
   net.oppCnt=[0,0,0,0,0,0];net.oppHold={l:false,r:false,b:false,j:false,d:false};net.events=[];net.oppSeq=0;net.rematchMe=net.rematchOpp=false;net.snapN=0;
-  g.mode='online';g.diffUsed='normal';g.score=0;g.wins=[0,0];g.round=1;g.stage=0;g.endBanner=null;g.paused=false;g.forfeit=null;
+  g.mode='online';g.diffUsed='normal';g.score=0;g.wins=[0,0];g.round=1;g.stage=0;g.endBanner=null;g.paused=false;g.forfeit=null;g.noContest=false;
   g.stats=newStats();g.unlockBefore=unlockedIds();
   $('pauseOv').hidden=true;$('netOv').hidden=true;
   setArena(ARENAS[Math.floor(Math.random()*ARENAS.length)].id);
@@ -2391,7 +2393,7 @@ class Puppet{
 const NET_INTERP=60;
 const FREE_STATES={idle:1,walk:1,jump:1,block:1};
 const LOCAL_SFX={punch:1,upper:1,kick:1,jump:1,airjump:1,slash:1,swoosh:1,gauntlet:1};
-const pred={on:false,x:0,y:0,vx:0,vy:0,ground:true,jumping:false,coyote:0,hist:[],sent:[],act:null,last:null,wp:0,face:-1,chain:0,chainT:0,jumpBuf:0,block:false};
+const pred={on:false,x:0,y:0,vx:0,vy:0,ground:true,jumping:false,coyote:0,airJumps:1,hist:[],sent:[],act:null,last:null,wp:0,face:-1,chain:0,chainT:0,jumpBuf:0,block:false};
 function predReset(){pred.on=false;pred.hist=[];pred.sent=[];pred.act=null;pred.last=null;pred.chain=0;pred.chainT=0;pred.jumpBuf=0;}
 function predFree(){
   const me=g.p2;
@@ -2419,6 +2421,7 @@ function predStep(dt){
   if(!predFree()){if(pred.on){pred.on=false;pred.hist=[];pred.act=null;}return;}
   if(!pred.on){
     pred.on=true;pred.x=me.tx;pred.y=me.ty;pred.vx=me.vx;pred.vy=0;pred.ground=me.ty>=CFG.GROUND-.5;pred.jumping=false;pred.hist=[];pred.face=me.face;
+    pred.coyote=pred.ground?CFG.COYOTE:0;pred.airJumps=pred.ground?1:0;pred.jumpBuf=0;
   }
   const h=hold.p1;
   let L=!!(h.left||virt.left),Rr=!!(h.right||virt.right);
@@ -2560,15 +2563,15 @@ function guestEnd(m){
   if(Array.isArray(m.w)&&m.w.length===2)g.wins=[num(m.w[0],0,9,0)|0,num(m.w[1],0,9,0)|0];
   finishGuest(g.wins[1]>g.wins[0],null);
 }
-function finishGuest(win,why){
+function finishGuest(win,why,nc){
   g.phase='over';
-  if(win){save.onlineWins++;save.wins++;}
+  if(win&&!nc){save.onlineWins++;save.wins++;}
   writeSave();
   const opp=g.p1?g.p1.name:'your opponent';
   const newly=SKINS.filter(k=>g.unlockBefore&&!g.unlockBefore.has(k.id)&&isUnlocked(k));
-  g.endBanner={text:win?'VICTORY':'DEFEAT',color:win?'#1d4fd7':'#d1352b'};
-  sfx(win?'win':'lose');
-  const R={title:win?'You win!':'You lose',sub:why||('Rounds '+g.wins[1]+'–'+g.wins[0]+' against '+opp+'.'),
+  g.endBanner=nc?{text:'NO CONTEST',color:'#56627a'}:{text:win?'VICTORY':'DEFEAT',color:win?'#1d4fd7':'#d1352b'};
+  if(!nc)sfx(win?'win':'lose');
+  const R={title:nc?'Match ended':(win?'You win!':'You lose'),sub:why||('Rounds '+g.wins[1]+'–'+g.wins[0]+' against '+opp+'.'),
     primary:why?'Find a new opponent':'Rematch',act:why?netStartSearch:requestRematch,alt:!why,
     share:win?'I beat '+opp+' '+g.wins[1]+'-'+g.wins[0]+' online in Stickman Brawl.':opp+' beat me online in Stickman Brawl. Rematch incoming.'};
   showResults(R,newly);
@@ -2605,9 +2608,10 @@ function netOppLeft(dropped,selfWhy){
     return;
   }
   $('pauseOv').hidden=true;
-  const won=!selfWhy;
-  if(role==='host'&&g.mode==='online'){g.forfeit=won?why+' You win.':why;endGame(won);}
-  else if(g.mode==='guest')finishGuest(won,won?why+' You win.':why);
+  // a clean 'bye' means the other player left: you win. A timeout or lost connection is a no-contest.
+  const won=!selfWhy&&!dropped,nc=!won;
+  if(role==='host'&&g.mode==='online'){g.forfeit=won?why+' You win.':why+' No result.';g.noContest=nc;endGame(won);}
+  else if(g.mode==='guest')finishGuest(won,won?why+' You win.':why+' No result.',nc);
 }
 function netStatus(txt){
   net.statusT=performance.now();
@@ -2739,6 +2743,7 @@ function setPlaying(on){
 }
 let resultAction=null;
 function showResults(R,newly){
+  $('pauseOv').hidden=true;$('pauseBtn').textContent='Pause';
   document.body.classList.remove('playing');
   $('menu').hidden=true;
   $('resTitle').textContent=R.title;
