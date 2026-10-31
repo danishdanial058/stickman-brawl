@@ -3314,11 +3314,12 @@ const IS_APP=document.body.classList.contains('app');
 const PREVIEW=/claude|anthropic/i.test(location.hostname);
 try{if(IS_APP||matchMedia('(hover:none)').matches)document.body.classList.add('touch');}catch(e){}
 const NET_PREFIX='sbx/v4';   // short topic names: every byte counts at 30 snapshots a second
-const NET_SERVER='wss://stickman-brawl-server.onrender.com/mqtt';   // our own server on Render (Singapore)
+const NET_SERVER='wss://stickman-brawl.hackerrank.workers.dev/mqtt';   // main server: Cloudflare Workers (free, never sleeps)
+const NET_BACKUP='wss://stickman-brawl-server.onrender.com/mqtt';      // backup: Render (Singapore), only used if Cloudflare can't be reached
 const NET_TIMEOUT=12000,NET_MAX_TRIES=8;                             // free server can take ~1 minute to wake up
 const NET_BROKERS=(()=>{
   try{const b=new URLSearchParams(location.search).get('broker');if(b&&/^wss?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/[\w\-]*)?$/.test(b))return [b];}catch(e){}
-  return [NET_SERVER];
+  return [NET_SERVER,NET_BACKUP];
 })();
 if(NET_BROKERS[0]!==NET_SERVER)window.__netdbg={g,get pred(){return pred;},net:()=>net};
 const NET_WAKE=NET_BROKERS[0].replace(/^ws/,'http').replace(/\/mqtt$/,'/');
@@ -3398,8 +3399,9 @@ function netEv(...a){
 function netConnect(){
   if(net.c&&(net.c.up||net.connecting))return;
   net.connecting=true;net.connT=performance.now();
-  if(net.tries===0){try{fetch(NET_WAKE,{mode:'no-cors',cache:'no-store'}).catch(()=>{});}catch(e){}}
   const url=NET_BROKERS[net.bi%NET_BROKERS.length];
+  // the backup server sleeps when idle: poke it awake the first time we fall back to it
+  if(url===NET_BACKUP&&!net.wokeBackup){net.wokeBackup=true;try{fetch(url.replace(/^ws/,'http').replace(/\/mqtt$/,'/'),{mode:'no-cors',cache:'no-store'}).catch(()=>{});}catch(e){}}
   const c=new Mqtt(url,'sb'+net.id,netOnMsg,()=>{net.connecting=false;net.err='';net.tries=0;netOnUp();},was=>{
     if(net.c!==c)return;
     net.connecting=false;net.c=null;
