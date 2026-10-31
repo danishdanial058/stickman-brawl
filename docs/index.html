@@ -224,6 +224,8 @@ kbd{font:inherit;border:2px solid var(--ink);border-radius:6px;padding:0 7px;bac
 .key.arrow{font:400 22px/1 var(--font-body)}
 .key.on{background:var(--marker);transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
 .key.ready{background:var(--marker)}
+.key.tip{animation:tipPulse 1s ease-in-out infinite}
+@keyframes tipPulse{0%,100%{box-shadow:3px 3px 0 var(--ink),0 0 0 0 rgba(246,201,40,.9)}50%{box-shadow:3px 3px 0 var(--ink),0 0 0 7px rgba(246,201,40,.55)}}
 body.playing #menu{display:none}
 body.playing #game{position:fixed;inset:0;z-index:5;background:var(--desk);display:flex;flex-direction:row;align-items:flex-end;justify-content:center;gap:10px;container-type:normal;
   padding:8px max(8px,env(safe-area-inset-right,0px)) 14px max(8px,env(safe-area-inset-left,0px))}
@@ -421,7 +423,7 @@ body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bot
         <div><dt><kbd>K</kbd></dt><dd>Kick</dd></div>
         <div><dt><kbd>L</kbd></dt><dd>Block</dd></div>
         <div><dt><kbd>Space</kbd></dt><dd>Special</dd></div>
-        <div><dt><kbd>Esc</kbd></dt><dd>Pause</dd></div>
+        <div><dt><kbd>P</kbd> or <kbd>Esc</kbd></dt><dd>Pause</dd></div>
       </dl>
       <h3>Player 2</h3>
       <dl class="keys">
@@ -669,7 +671,7 @@ function seeded(seed){let s=seed>>>0;return ()=>{s=(s*1664525+1013904223)>>>0;re
 /* ================= SAVE (localStorage, always wrapped) ================= */
 const SAVE_KEY='stickman-brawl-v2';
 const DEF_SAVE={diff:'normal',mode:'arcade',skin:'band',arena:'notebook',streak:0,best:0,wins:0,ladderBest:0,ladderClear:false,bossBeat:false,survivalBest:0,music:true,muted:false,name:'',onlineWins:0,
-  xp:0,coins:0,bestStreak:0,owned:{},equip:{head:null,body:null},daily:{last:'',count:0,best:0},quests:{day:'',list:[]},wq:{day:'',list:[]},mq:{day:'',list:[]},ach:{},achDone:{},life:{}};
+  xp:0,coins:0,tutDone:false,bestStreak:0,owned:{},equip:{head:null,body:null},daily:{last:'',count:0,best:0},quests:{day:'',list:[]},wq:{day:'',list:[]},mq:{day:'',list:[]},ach:{},achDone:{},life:{}};
 function loadSave(){
   let s={};
   try{
@@ -2345,7 +2347,44 @@ function dirTap(who,dir){
   if(now-(lastTap[k]||0)<260){lastTap[k]=0;fire(who,'dodge');}
   else lastTap[k]=now;
 }
+/* first fights: a control guide along the bottom of the arena that ticks off each control as the player uses it */
+const TIPS=[['move','A  D','\u25C0 \u25B6','Move'],['jump','W','\u25B2','Jump'],['punch','J','Punch','Punch'],['kick','K','Kick','Kick'],['block','L','Block','Block'],['special','Space','Special','Special']];
+const tip={done:{}};
+function tipsOn(){return !save.tutDone&&save.xp<200&&(g.mode==='arcade'||g.mode==='versus'||g.mode==='survival'||g.mode==='boss')&&g.p1&&g.p1.ctrl==='p1'&&g.phase!=='over';}
+function tipMark(act){
+  if(!tipsOn())return;
+  const k=act==='left'||act==='right'?'move':act;
+  if(!TIPS.some(t=>t[0]===k)||tip.done[k])return;
+  tip.done[k]=true;
+  if(TIPS.every(t=>t[0]==='special'||tip.done[t[0]])){save.tutDone=true;writeSave();}
+}
+const TIP_KEYS={move:['left','right'],jump:['jump'],punch:['punch'],kick:['kick'],block:['block'],special:['special']};
+let tipGlow='';
+function drawTips(){
+  const touch=document.body.classList.contains('touch');
+  if(g.stats.time>50&&tipsOn()){save.tutDone=true;writeSave();}
+  const on=tipsOn()&&!(g.phase==='intro'&&g.vsCard);
+  if(touch){
+    // on phones the on-screen buttons glow until you have tried them
+    const want=on?TIPS.filter(t=>!tip.done[t[0]]).map(t=>t[0]).join():'';
+    if(want!==tipGlow){tipGlow=want;for(const b of document.querySelectorAll('.key'))b.classList.remove('tip');
+      if(on)for(const t of TIPS)if(!tip.done[t[0]])for(const k of TIP_KEYS[t[0]]){const el=document.querySelector('.key[data-k='+k+']');if(el)el.classList.add('tip');}}
+    return;
+  }
+  if(!on)return;
+  const n=TIPS.length,w=118,h=58,gap=8,x0=(CFG.W-(n*w+(n-1)*gap))/2,y0=CFG.H-h-40;
+  for(let i=0;i<n;i++){
+    const [id,key,tk,lab]=TIPS[i],d=!!tip.done[id],x=x0+i*(w+gap),label=touch?tk:key;
+    ctx.globalAlpha=d?.5:.95;ctx.fillStyle=d?'#d8f3e3':'#ffffff';ctx.strokeStyle=INK;ctx.lineWidth=2.5;rrect(ctx,x,y0,w,h,10);ctx.fill();ctx.stroke();
+    ctx.font='18px '+FD;const kw=Math.max(36,ctx.measureText(label).width+16);
+    ctx.fillStyle=d?'#2fa36b':'#f6c928';rrect(ctx,x+(w-kw)/2,y0+6,kw,26,6);ctx.fill();ctx.stroke();
+    txt(label,x+w/2,y0+26,18,INK,'center',FD);
+    txt((d?'\u2713 ':'')+lab,x+w/2,y0+51,16,d?'#2fa36b':INK,'center');
+  }
+  ctx.globalAlpha=1;
+}
 function pressAct(who,act){
+  if(who==='p1')tipMark(act);
   if(act==='left'||act==='right'){dirTap(who,act);return;}
   if(act==='down'){fire(who,'throw');return;}
   if(act==='block')return;
@@ -3299,7 +3338,7 @@ function render(){
   for(const f of g.floaters){ctx.globalAlpha=clamp(1-f.t/f.life+.2,0,1);otxt(f.txt,f.x,f.y,22*Math.max(1,U*.85),f.c,'center',FD);}
   ctx.globalAlpha=1;
   ctx.restore();
-  drawHUD();drawVS();drawBanner();drawCallout();
+  drawHUD();drawTips();drawVS();drawBanner();drawCallout();
   if(g.phase==='over'&&g.endBanner&&!g.banner)drawBig(g.endBanner.text,g.endBanner.color,1,.85,CFG.H/2+10);
   if(g.flash>0){ctx.fillStyle='rgba(255,255,255,'+(g.flash*.85).toFixed(3)+')';ctx.fillRect(0,0,CFG.W,CFG.H);}
 }
