@@ -386,6 +386,7 @@ body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bot
     <button class="hb" id="guideBtn" type="button">Guide</button>
     <button class="hb" id="achBtn" type="button">Achievements <span class="badge" id="achBadge" hidden></span></button>
     <button class="hb" id="fsBtn" type="button">Full screen</button>
+    <p class="hint" style="max-width:380px;text-align:center">Privacy: progress is saved on your device (or your CrazyGames account). Online matches send only your player name, level, fighter and armor to the game server, to show them to your opponent.</p>
   </div>
 </section>
 
@@ -488,7 +489,7 @@ function sSet(k,v){
   try{if(CG&&CG.data)CG.data.setItem(k,v);}catch(e){}
   try{localStorage.setItem(k,v);}catch(e){}
 }
-let cgPlaying=false;
+let cgPlaying=false,cgName='',cgReload=false;
 function cgGameplay(on){
   if(!CG||cgPlaying===on)return;cgPlaying=on;
   try{on?CG.game.gameplayStart():CG.game.gameplayStop();}catch(e){}
@@ -640,7 +641,7 @@ const MODES=[
   {id:'arcade',name:'Arcade',desc:'Beat 5 rivals, then the boss Big Ink. Two continues.',diff:true,
     note:'Each stage has its own arena. If you lose, you can continue twice.'},
   {id:'online',name:'Online',desc:'Fight a real player. The game picks your opponent for you.',diff:false,
-    note:'You get paired with the next player who is searching. Best of 3 rounds. Needs internet.'},
+    note:'You get paired with the next player who is searching. Best of 3 rounds. Needs internet. Your player name, level, fighter and armor are sent to the game server so your opponent can see them; nothing else is collected.'},
   {id:'versus',name:'Quick Match',desc:'Best of 3 rounds against a CPU rival.',diff:true,
     note:'Pick any of the 10 arenas and a difficulty.'},
   {id:'survival',name:'Survival',desc:'Endless waves from both sides. A brute every 5th wave.',diff:false,
@@ -4313,7 +4314,7 @@ for(const b of document.querySelectorAll('.gtab'))b.addEventListener('click',()=
 function renderProfile(){
   achSync();
   const I=lvInfo(save.xp);
-  $('pfLv').textContent=I.L;$('pfName').textContent='Level '+I.L;
+  $('pfLv').textContent=I.L;$('pfName').textContent='Level '+I.L+(cgName?' · '+cgName:'');
   $('pfXp').textContent=I.L>=MAX_LV?'Max level':fmt(I.cur)+' / '+fmt(I.need)+' XP';
   $('pfXpFill').style.width=(I.L>=MAX_LV?100:I.cur/I.need*100).toFixed(1)+'%';
   $('pfCoins').textContent=fmt(save.coins);
@@ -4501,6 +4502,7 @@ function showResults(R,newly){
   $('results').querySelector('.scr-bd').scrollTop=0;
 }
 function toMenu(){
+  if(cgReload){writeSave();location.reload();return;}
   netLeave();
   const d=dailyCheck();if(d)showDaily(d);
   g.paused=false;$('pauseOv').hidden=true;clearHolds();
@@ -4567,7 +4569,10 @@ buildMenu();
 if(CG){
   try{const st=CG.game.settings;if(st&&st.muteAudio){muted=true;MUS.on=false;}
     CG.game.addSettingsChangeListener(ns=>{if(ns&&ns.muteAudio){muted=true;MUS.on=false;syncToggles();}});}catch(e){}
-  try{CG.user.getUser().then(u=>{if(u&&u.username){save.name=cleanName(u.username);writeSave();refreshMenu();}}).catch(()=>{});}catch(e){}
+  // logged-in CrazyGames players use their CrazyGames name; guests just play as guests
+  try{CG.user.getUser().then(u=>{if(u&&u.username){cgName=u.username;save.name=cleanName(u.username);writeSave();refreshMenu();}}).catch(()=>{});}catch(e){}
+  // a guest who logs in mid-session: their save moves to the account, so reload at the next calm moment
+  try{CG.user.addAuthListener(u=>{if(!u)return;writeSave();cgReload=true;if(!playingNow()&&$('results').hidden)location.reload();});}catch(e){}
 }
 questsEnsure();
 showDaily(dailyCheck());
