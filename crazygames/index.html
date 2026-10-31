@@ -77,6 +77,8 @@ body.playing .pausechip{display:block}
 .over-title{font:400 clamp(26px,7cqw,64px)/1 var(--font-display);margin:0}
 .net-title{font:400 clamp(20px,5cqw,44px)/1.05 var(--font-display);margin:0}
 .net-status{max-width:46ch;font-size:clamp(13px,2.4cqw,18px)}
+.net-priv{max-width:52ch;font-size:clamp(11px,1.8cqw,14px)}
+.net-priv a,.set-list a{color:var(--blue)}
 .stats{margin:0;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .btn{font:400 clamp(16px,3.6vh,24px)/1 var(--font-display);padding:.5em 1.1em;border:3px solid var(--ink);border-radius:12px;background:var(--blue);color:#fff;box-shadow:4px 4px 0 var(--ink)}
@@ -289,6 +291,7 @@ body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bot
         <div class="panel">
           <h2 class="net-title" id="netTitle">Finding a player</h2>
           <p class="stats net-status" id="netStatus" aria-live="polite"></p>
+          <p class="stats net-priv">Online play shares your player name, level, fighter and armor with your opponent. <a href="https://brawl.expresslearn.my/privacy.html" target="_blank" rel="noopener">Privacy Policy</a></p>
           <div class="row">
             <button class="btn alt" id="netCancel" type="button">Cancel</button>
             <button class="btn" id="netRetry" type="button" hidden>Try again</button>
@@ -385,7 +388,7 @@ body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bot
     <button class="hb" id="guideBtn" type="button">Guide</button>
     <button class="hb" id="achBtn" type="button">Achievements <span class="badge" id="achBadge" hidden></span></button>
     <button class="hb" id="fsBtn" type="button">Full screen</button>
-    <p class="hint" style="max-width:380px;text-align:center">Privacy: progress is saved on your device (or your CrazyGames account). Online matches send only your player name, level, fighter and armor to the game server, to show them to your opponent.</p>
+    <p class="hint" style="max-width:380px;text-align:center">Progress is saved on your device (or your CrazyGames account). Online matches share only your player name, level, fighter and armor with your opponent. <a href="https://brawl.expresslearn.my/privacy.html" target="_blank" rel="noopener">Privacy Policy</a></p>
   </div>
 </section>
 
