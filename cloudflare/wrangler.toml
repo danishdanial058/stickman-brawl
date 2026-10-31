@@ -1,0 +1,12 @@
+# Stickman Brawl online server on Cloudflare Workers + one Durable Object (free plan).
+name = "stickman-brawl"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+[[durable_objects.bindings]]
+name = "BROKER"
+class_name = "Broker"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Broker"]
