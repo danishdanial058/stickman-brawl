@@ -1006,7 +1006,7 @@ class Fighter{
     this.atk=null;this.punchAlt=false;this.chain=0;this.chainT=0;
     this.hitstun=0;this.blockLock=0;this.freezeT=0;this.reverseT=0;this.fz=false;this.invuln=0;this.roll=null;this.landLag=0;this.diveUsed=false;
     this.held=[];this.combo=0;this.comboT=0;this.trail=[];this.trailT=0;
-    this.inp={left:false,right:false,block:false,down:false,jump:0,jumpHeld:true,punch:0,kick:0,special:0,dodge:0,throw:0,move:null};
+    this.inp={left:false,right:false,block:false,down:false,jump:0,jumpHeld:true,punch:0,kick:0,special:0,dodge:0,dodgeDir:0,throw:0,move:null};
     this.tool=null;this.airJumps=1;this.surf=null;this.dropT=0;this.hazT=0;this.rag=null;this.lastHit=null;this.fxT=0;
     this.coyote=0;this.jumping=false;this.walkPh=0;this.lastStep=0;this.phase2=false;this.tgt=null;this.flashT=0;
   }
@@ -1158,7 +1158,9 @@ class Fighter{
           if(this.boss){if(inp.move){const m=inp.move;inp.move=null;this.startAttack(m);}}
           else if(inp.dodge>0&&this.onGround&&this.stam>=CFG.DODGE_COST){
             inp.dodge=0;this.stam-=CFG.DODGE_COST;
-            const rd=dir||(tg?(-Math.sign(tg.x-this.x)||-this.face):-this.face);
+            // roll the way the player double-tapped, even if the key was already released
+            const td=inp.dodgeDir?(this.reverseT>0?-inp.dodgeDir:inp.dodgeDir):0;inp.dodgeDir=0;
+            const rd=td||dir||(tg?(-Math.sign(tg.x-this.x)||-this.face):-this.face);
             const dm=this.dodgeMul||1;this.roll={t:0,dur:.38*dm,dir:rd};this.invuln=.3*dm;this.state='roll';sfx('roll');
             if(this===g.p1&&this.ctrl==='p1')track('dodge');
           }
@@ -2344,10 +2346,11 @@ const ARROWS={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'jump',ArrowDown:'down
 const P2KEYS=Object.assign({},ARROWS,{Numpad1:'punch',Comma:'punch',Numpad2:'kick',Period:'kick',Numpad3:'block',Slash:'block',Numpad0:'special',ShiftRight:'special'});
 const HOLDS={left:1,right:1,block:1,jump:1,down:1};
 const lastTap={};
+const tapDir={p1:0,p2:0};
 function dirTap(who,dir){
   // a second tap of the same direction within a quarter second is a dodge roll
   const now=performance.now(),k=who+dir;
-  if(now-(lastTap[k]||0)<260){lastTap[k]=0;fire(who,'dodge');}
+  if(now-(lastTap[k]||0)<260){lastTap[k]=0;tapDir[who]=dir==='left'?-1:1;fire(who,'dodge');tapDir[who]=0;}
   else lastTap[k]=now;
 }
 /* first fights: a control guide along the bottom of the arena that ticks off each control as the player uses it */
@@ -2401,11 +2404,12 @@ function keyAction(code){
 }
 const playingNow=()=>g.mode!=='demo'&&(g.phase==='intro'||g.phase==='fight'||g.phase==='koWait');
 function fire(who,act){
-  if(g.mode==='guest'){if(who==='p1'&&g.phase==='fight'){const i=ACTS.indexOf(act);if(i>=0)net.cnt[i]++;predPress(act);if(act==='dodge')track('dodge');}return;}
+  if(g.mode==='guest'){if(who==='p1'&&g.phase==='fight'){if(act==='dodge')net.lastDodge=tapDir.p1||0;const i=ACTS.indexOf(act);if(i>=0)net.cnt[i]++;predPress(act);if(act==='dodge')track('dodge');}return;}
   if(g.phase!=='fight'||g.paused)return;
   const f=who==='p1'?g.p1:g.p2;
   if(!f||f.ctrl!==who)return;
   f.inp[act]=act==='jump'?.16:.2;
+  if(act==='dodge')f.inp.dodgeDir=tapDir[who]||0;
 }
 function clearHolds(){for(const h of [hold.p1,hold.p2,virt])for(const k in h)h[k]=false;for(const b of document.querySelectorAll('.key.on'))b.classList.remove('on');}
 document.addEventListener('keydown',e=>{
@@ -3569,7 +3573,7 @@ function hostMsg(m){
       if(c.some((v,i)=>v<net.oppCnt[i]))net.oppCnt=c.slice();
       for(let i=0;i<6;i++)if(c[i]>net.oppCnt[i]){
         net.oppCnt[i]=c[i];
-        if(g.mode==='online'&&g.phase==='fight'&&g.p2&&g.p2.ctrl==='net')g.p2.inp[ACTS[i]]=ACTS[i]==='jump'?.16:.2;
+        if(g.mode==='online'&&g.phase==='fight'&&g.p2&&g.p2.ctrl==='net'){g.p2.inp[ACTS[i]]=ACTS[i]==='jump'?.16:.2;if(ACTS[i]==='dodge')g.p2.inp.dodgeDir=m.dd||0;}
       }
     }
   }else if(m.t==='hi'){if(net.started&&g.mode==='online')netSend(startInfo());}
@@ -3667,7 +3671,7 @@ function decodeSnap(b){
 }
 function decodeIn(b){
   const r=new BR(b);r.u8();const fl=r.u8(),s=r.u32(),c=[];for(let i=0;i<6;i++)c.push(r.u32());
-  return {t:'in',l:!!(fl&1),r:!!(fl&2),b:!!(fl&4),j:!!(fl&8),d:!!(fl&16),s,c};
+  return {t:'in',l:!!(fl&1),r:!!(fl&2),b:!!(fl&4),j:!!(fl&8),d:!!(fl&16),dd:fl&32?1:(fl&64?-1:0),s,c};
 }
 
 /* --- guest side --- */
@@ -3950,11 +3954,12 @@ function finishGuest(win,why,nc){
 /* --- both sides --- */
 function sendInput(now){
   const h=hold.p1,l=!!(h.left||virt.left),r=!!(h.right||virt.right),b=!!(h.block||virt.block),j=!!(h.jump||virt.jump),d=!!(h.down||virt.down);
-  const key=(l?1:0)+(r?2:0)+(b?4:0)+(j?8:0)+(d?16:0)+'|'+net.cnt.join(',');
+  const dd=net.lastDodge>0?32:(net.lastDodge<0?64:0);
+  const key=(l?1:0)+(r?2:0)+(b?4:0)+(j?8:0)+(d?16:0)+dd+'|'+net.cnt.join(',');
   if((key!==net.inKey&&now-net.inT>30)||now-net.inT>250){
     net.inKey=key;net.inT=now;net.seq++;
     pred.sent.push({seq:net.seq,t:now});if(pred.sent.length>120)pred.sent.shift();
-    const w=new BW(32);w.u8(0xB5);w.u8((l?1:0)|(r?2:0)|(b?4:0)|(j?8:0)|(d?16:0));w.u32(net.seq);for(const v of net.cnt)w.u32(v);
+    const w=new BW(32);w.u8(0xB5);w.u8((l?1:0)|(r?2:0)|(b?4:0)|(j?8:0)|(d?16:0)|dd);w.u32(net.seq);for(const v of net.cnt)w.u32(v);
     if(net.c&&net.state==='match')net.c.publishBin(theirTopic(),w.out());
   }
 }
