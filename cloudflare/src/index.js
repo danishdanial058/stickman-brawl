@@ -21,7 +21,9 @@ const u16 = (b, p) => (b[p] << 8) | b[p + 1];
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
-    const stub = env.BROKER.get(env.BROKER.idFromName('main'));
+    // players are mostly in Malaysia: keep the broker in Asia-Pacific (Singapore) instead of wherever the first visitor came from.
+    // A location hint only applies when an object is first created, so this uses a new name.
+    const stub = env.BROKER.get(env.BROKER.idFromName('apac-1'), { locationHint: 'apac' });
     if (url.pathname === '/mqtt') {
       if ((req.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') return new Response('Expected a WebSocket', { status: 426 });
       return stub.fetch(req);
@@ -50,7 +52,9 @@ export class Broker {
   async fetch(req) {
     const url = new URL(req.url);
     if (url.pathname === '/status') {
-      return new Response('Stickman Brawl server is running. Players connected: ' + this.ctx.getWebSockets().length + '\n',
+      // report which Cloudflare data centre this broker runs in (e.g. SIN = Singapore), to check latency
+      if (!this.colo) { try { const t = await (await fetch('https://www.cloudflare.com/cdn-cgi/trace')).text(); this.colo = (t.match(/colo=(\w+)/) || [])[1] || '?'; } catch (e) { this.colo = '?'; } }
+      return new Response('Stickman Brawl server is running in ' + this.colo + '. Players connected: ' + this.ctx.getWebSockets().length + '\n',
         { headers: { 'content-type': 'text/plain', 'access-control-allow-origin': '*' } });
     }
     const protos = (req.headers.get('Sec-WebSocket-Protocol') || '').split(',').map(s => s.trim());

@@ -202,8 +202,8 @@ kbd{font:inherit;border:2px solid var(--ink);border-radius:6px;padding:0 7px;bac
 .res-hd{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;flex:none}
 .res-title{font:400 clamp(24px,7vh,46px)/1 var(--font-display);margin:0}
 .res-sub{margin:0;font-size:clamp(14px,3vh,18px)}
-.res-grid{display:grid;grid-template-columns:minmax(0,.62fr) minmax(0,1.15fr) minmax(0,1fr);gap:clamp(10px,2vw,18px);align-content:center}
-.res-hero{display:flex;align-items:center;justify-content:center;border:2.5px solid var(--ink);border-radius:12px;background:#ffffff;min-width:0;align-self:stretch}
+.res-grid{display:grid;grid-template-columns:minmax(0,.62fr) minmax(0,1.15fr) minmax(0,1fr);gap:clamp(10px,2vw,18px);align-content:start;align-content:safe center}
+.res-hero{display:flex;align-items:center;justify-content:center;border-radius:12px;background:#ffffff;min-width:0;align-self:stretch}
 .res-hero canvas{display:block;width:100%;max-width:clamp(160px,40vh,300px);height:auto;aspect-ratio:4/5}
 .res-title{color:var(--blue)}
 .res-title.lose{color:var(--red)}
@@ -226,6 +226,13 @@ kbd{font:inherit;border:2px solid var(--ink);border-radius:6px;padding:0 7px;bac
 .res-btns{flex-wrap:wrap;justify-content:flex-start}
 @media (max-aspect-ratio:1/1){.res-grid{grid-template-columns:1fr}.res-hero canvas{max-width:none;width:auto;height:clamp(110px,22vh,190px)}}
 @media (min-aspect-ratio:1/1) and (max-height:560px){.res-grid{grid-template-columns:minmax(0,.5fr) minmax(0,1.15fr) minmax(0,1fr)}}
+/* landscape phones: tighten the results so everything fits without cutting off the top */
+@media (min-aspect-ratio:1/1) and (max-height:460px){
+  .res-grid{gap:10px}
+  .stat-grid{gap:4px}.stat-grid div{padding:2px 8px;border-width:1.5px}.stat-grid dt{font-size:10px}.stat-grid dd{font-size:16px}
+  .rw-head b{font-size:16px}.rw-list{font-size:13px;gap:0;margin:4px 0 6px}.rw-up{font-size:13px;padding:3px 8px;margin-top:5px}
+  .unlock{font-size:13px;padding:4px 8px;margin-top:6px}.share{font-size:12px;margin-top:5px}
+}
 
 /* ---------- playing: the arena takes the whole screen, touch controls beside it ---------- */
 .pad{display:none;-webkit-user-select:none;user-select:none}
@@ -3433,6 +3440,10 @@ function drawHUD(){
     txt(String(tl),cx,cy+11*u,32*u,urgent&&Math.floor(g.clock*4)%2===0?'#d1352b':INK,'center',FD);
   }
   const by=cy+r+12*u;
+  if(g.mode==='guest'&&net.rtt){
+    const pm=Math.round(net.rtt),pc=pm<90?'#2fa36b':pm<180?'#d99a00':'#d1352b';
+    txt('Ping '+pm+' ms',cx,by+44*u,13*u,pc,'center');
+  }
   if(g.mode==='versus'||g.mode==='duo'||g.mode==='demo'||g.mode==='online'||g.mode==='guest'){
     for(let i=0;i<CFG.ROUNDS_TO_WIN;i++)for(const side of [0,1]){
       const px=cx+(side?1:-1)*(14+i*20*u);
@@ -3500,7 +3511,7 @@ function updateCam(real){
   cam.x=clamp(cam.x,hw,CFG.W-hw);cam.y=clamp(cam.y,hh,CFG.H-hh);
 }
 function render(){
-  const cw=cv.clientWidth||CFG.W,chh=cv.clientHeight||CFG.H,dpr=Math.min(2,window.devicePixelRatio||1);
+  const cw=cv.clientWidth||CFG.W,chh=cv.clientHeight||CFG.H,dpr=Math.min(document.body.classList.contains('touch')?1.5:2,window.devicePixelRatio||1);
   const pw=Math.round(cw*dpr),ph=Math.round(chh*dpr);
   if(cv.width!==pw||cv.height!==ph){cv.width=pw;cv.height=ph;}
   const sc=Math.min(pw/CFG.W,ph/CFG.H),ox=(pw-CFG.W*sc)/2,oy=(ph-CFG.H*sc)/2;
@@ -3720,6 +3731,7 @@ function netLeave(){
 }
 function beginMatch(role,m,mid){
   net.state='match';net.role=role;net.mid=mid;
+  net.jit=null;net.snapTs=0;net.rtt=0;NET_INTERP=80;
   net.opp={id:m.id,name:cleanName(m.name),skin:SKINS.some(k=>k.id===m.skin)?m.skin:'band',lv:num(m.lv,1,MAX_LV,1)|0,gear:cleanGear(m.gr)};
   net.lastRecv=performance.now();net.hiT=0;net.started=false;net.rematchMe=net.rematchOpp=false;net.invite=null;
   net.c.unsubscribe([lobbyT()]);
@@ -3912,7 +3924,7 @@ class Puppet{
     this.tx=num(a[0],-100,1100,this.tx);this.ty=num(a[1],-800,700,this.ty);
     if(this.init&&Math.hypot(this.tx-ox,this.ty-oy)>140)this.jumped=true;   // respawn or teleport
     if(!this.init){this.x=this.tx;this.y=this.ty;this.init=true;}
-    const now=performance.now();
+    const now=net.snapTs||performance.now();
     this.buf.push({t:now,x:this.tx,y:this.ty});
     if(this.buf.length>12)this.buf.shift();
     this.face=a[2]===-1?-1:1;this.scale=num(a[3],.3,3,1);this.state=STATES[num(a[4],0,STATES.length-1,0)|0]||'idle';
@@ -3937,7 +3949,12 @@ class Puppet{
     if(rt<=b[0].t){this.x=b[0].x;this.y=b[0].y;return;}
     for(let i=b.length-1;i>0;i--){
       if(b[i-1].t<=rt){
-        if(rt>=b[i].t&&i===b.length-1){this.x=b[i].x;this.y=b[i].y;return;}
+        if(rt>=b[i].t&&i===b.length-1){
+          // the next snapshot is late: keep gliding along the last direction for a moment rather than stopping dead
+          const a=b[i-1],c=b[i],span=Math.max(1,c.t-a.t),ex=Math.min(rt-c.t,90)/span;
+          const jump=Math.hypot(c.x-a.x,c.y-a.y)>140;
+          this.x=jump?c.x:c.x+(c.x-a.x)*ex;this.y=jump?c.y:Math.min(c.y+(c.y-a.y)*ex,c.y+40);return;
+        }
         const a=b[i-1],c=b[i],k=Math.hypot(c.x-a.x,c.y-a.y)>140?1:clamp((rt-a.t)/Math.max(1,c.t-a.t),0,1);   // teleports (respawn, new round) snap instead of sliding
         this.x=lerp(a.x,c.x,k);this.y=lerp(a.y,c.y,k);return;
       }
@@ -3960,7 +3977,23 @@ class Puppet{
 }
 
 /* --- guest prediction: your own movement, jumps and basic attacks show instantly, then get corrected by the host --- */
-const NET_INTERP=60;
+let NET_INTERP=80;   // ms the guest draws the opponent in the past; grows on a jittery connection, shrinks on a steady one
+/* snapshot timing: the host sends one every ~33 ms, but phones on Wi-Fi or mobile data receive them in bursts.
+   Give each snapshot an evenly spaced timestamp and size the delay to the measured jitter, so movement stays smooth. */
+function snapTiming(){
+  const now=performance.now(),J=net.jit||(net.jit={ts:0,iv:33.3,dev:6,last:0});
+  if(!J.last||now-J.last>600){J.ts=now;J.iv=33.3;J.dev=6;}
+  else{
+    const ia=Math.min(250,now-J.last);
+    J.iv+=(clamp(ia,10,120)-J.iv)*.03;
+    J.dev+=(Math.abs(ia-J.iv)-J.dev)*.08;
+    J.ts+=J.iv;J.ts+=(now-J.ts)*.06;          // drift slowly toward real arrival times
+    if(J.ts>now)J.ts=now;if(now-J.ts>300)J.ts=now-300;
+  }
+  J.last=now;net.snapTs=J.ts;
+  const want=clamp(J.iv+J.dev*2.5+12,60,220);
+  NET_INTERP+=(want-NET_INTERP)*(want>NET_INTERP?.25:.02);   // grow fast, shrink slowly
+}
 const FREE_STATES={idle:1,walk:1,jump:1,block:1};
 const LOCAL_SFX={punch:1,upper:1,kick:1,jump:1,airjump:1,slash:1,swoosh:1,gauntlet:1,chop:1,thrust:1,whirr:1,bowshot:1,toss:1};
 const pred={on:false,x:0,y:0,vx:0,vy:0,ground:true,jumping:false,coyote:0,airJumps:1,hist:[],sent:[],act:null,last:null,wp:0,face:-1,chain:0,chainT:0,jumpBuf:0,block:false};
@@ -4051,6 +4084,8 @@ function predReconcile(ack,age){
   if(!pred.on||!me||!pred.hist.length)return;
   const sent=pred.sent.find(e=>e.seq===ack);
   if(!sent)return;
+  const rtt=performance.now()-sent.t-age;
+  if(rtt>0&&rtt<5000)net.rtt=net.rtt?net.rtt+(rtt-net.rtt)*.1:rtt;
   // the host started using input #ack when it arrived; the snapshot is 'age' ms after that,
   // which lines up with our own prediction 'age' ms after we sent it
   const target=sent.t+age,H=pred.hist;
@@ -4136,6 +4171,7 @@ function applySnap(m){
 function guestMsg(m){
   if(m.t==='start')guestStart(m);
   else if(m.t==='snap'){
+    snapTiming();
     if(!net.started&&m.i)guestStart(m.i);
     if(net.started&&g.mode==='guest')applySnap(m);
   }
