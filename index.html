@@ -4857,7 +4857,7 @@ for(const id of TOOL_IDS){
 buildMenu();
 if(CG){
   try{const st=CG.game.settings;if(st&&st.muteAudio){muted=true;MUS.on=false;}
-    CG.game.addSettingsChangeListener(ns=>{if(ns&&ns.muteAudio){muted=true;MUS.on=false;syncToggles();}});}catch(e){}
+    CG.game.addSettingsChangeListener(ns=>{if(!ns)return;if(ns.muteAudio){muted=true;MUS.on=false;}else{muted=!!save.muted;MUS.on=save.music!==false;}syncToggles();});}catch(e){}
   // logged-in CrazyGames players use their CrazyGames name; guests just play as guests
   try{CG.user.getUser().then(u=>{if(u&&u.username){cgName=u.username;save.name=cleanName(u.username);writeSave();refreshMenu();}}).catch(()=>{});}catch(e){}
   // a guest who logs in mid-session: their save moves to the account, so reload at the next calm moment
