@@ -3537,7 +3537,7 @@ function render(){
   for(const f of g.floaters){ctx.globalAlpha=clamp(1-f.t/f.life+.2,0,1);otxt(f.txt,f.x,f.y,22*Math.max(1,U*.85),f.c,'center',FD);}
   ctx.globalAlpha=1;
   ctx.restore();
-  drawHUD();drawTips();drawVS();drawBanner();drawCallout();
+  if(!VIDEO){drawHUD();drawTips();}drawVS();drawBanner();drawCallout();
   if(g.phase==='over'&&g.endBanner&&!g.banner)drawBig(g.endBanner.text,g.endBanner.color,1,.85,CFG.H/2+10);
   if(g.flash>0){ctx.fillStyle='rgba(255,255,255,'+(g.flash*.85).toFixed(3)+')';ctx.fillRect(-CFG.W,-CFG.H,CFG.W*3,CFG.H*3);}
 }
@@ -3556,6 +3556,8 @@ const NET_PREFIX='sbx/v4';   // short topic names: every byte counts at 30 snaps
 const NET_SERVER='wss://stickman-brawl.hackerrank.workers.dev/mqtt';   // main server: Cloudflare Workers (free, never sleeps)
 const NET_BACKUP='wss://stickman-brawl-server.onrender.com/mqtt';      // backup: Render (Singapore), only used if Cloudflare can't be reached
 const NET_TIMEOUT=12000,NET_MAX_TRIES=8;                             // free server can take ~1 minute to wake up
+// local trailer recording only: ?video on localhost hides the HUD and control tips
+const VIDEO=(()=>{try{return new URLSearchParams(location.search).has('video')&&/^(localhost|127\.0\.0\.1)$/.test(location.hostname);}catch(e){return false;}})();
 const NET_BROKERS=(()=>{
   try{const b=new URLSearchParams(location.search).get('broker');if(b&&/^wss?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/[\w\-]*)?$/.test(b))return [b];}catch(e){}
   return [NET_SERVER,NET_BACKUP];
