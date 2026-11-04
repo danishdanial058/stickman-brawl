@@ -4916,6 +4916,8 @@ else if(CG){
   let im=false;try{im=!!CG.game.isInstantMultiplayer;}catch(e){}
   if(im)setTimeout(()=>startGame('online',rid(6)),300);
   else if(!save.xp&&!save.wins&&!save.firstFight){save.firstFight=true;save.mode='versus';save.diff='easy';save.arena='notebook';writeSave();refreshMenu();setTimeout(()=>startGame('versus'),300);}
+  // returning players also land in a fight right away (their last setup); Pause > Quit opens the menu. Online/2-player fall back to Quick Match.
+  else{const m=quickMode(),am=m==='online'||m==='duo'?'versus':m;setTimeout(()=>startGame(am),300);}
 }
 // CrazyGames: a player already in the game accepts a friend's invite (notification, link or friends list) -> join that room
 if(CG){try{CG.game.addJoinRoomListener(p=>{const r=p&&p.room;if(!okRoom(r))return;if(g.paused)pauseToggle();startGame('online',r);});}catch(e){}}
