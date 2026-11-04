@@ -1542,7 +1542,7 @@ function inflict(src,def,dmg,o){
     sfx(o.heavy?'hit2':'hit');spark(px,py,'#f09a1a',o.heavy?14:8);if(!o.hazard)impact(px,py,o.heavy,o.dir||1,def.col);
     if(def.armor&&o.stun<.5){def.flashT=.12;def.vx+=o.dir*o.kb*.25;}
     else{
-      def.atk=null;def.roll=null;def.hitstun=o.stun;def.vx=o.dir*o.kb*(def.armor?.4:1)*(def.kbMul||1);
+      def.atk=null;def.roll=null;def.hitstun=o.stun;def.flashT=Math.max(def.flashT,.1);def.vx=o.dir*o.kb*(def.armor?.4:1)*(def.kbMul||1);
       if(o.launch&&!def.armor){def.vy=o.launch*Math.sqrt(def.kbMul||1);def.onGround=false;}
       else if(!def.onGround)def.vy=Math.min(def.vy,-150);
     }
@@ -3137,6 +3137,17 @@ function weaponTrail(f,v){
   for(const p of W)ctx.lineTo(p.b[0],p.b[1]);ctx.stroke();
   ctx.restore();
 }
+// squash when landing, stretch when taking off; looks only, works for host fighters and online puppets
+function squash(f,v){
+  const air=!!v.air,dt=clamp(g.clock-(f.sqC===undefined?g.clock:f.sqC),0,.05);f.sqC=g.clock;
+  if(f.sqAir===undefined)f.sqAir=air;
+  if(air!==f.sqAir){if(air){f.sqS=1;f.sqL=0;}else{f.sqL=1;f.sqS=0;}f.sqAir=air;}
+  f.sqL=Math.max(0,(f.sqL||0)-dt/.16);f.sqS=Math.max(0,(f.sqS||0)-dt/.2);
+  if(v.state==='ko'||v.state==='roll'||f.hp<=0)return [1,1];
+  const l=Math.sin(f.sqL*Math.PI*.5),s=Math.sin(f.sqS*Math.PI*.5);
+  if(l<.01&&s<.01)return [1,1];
+  return [1+.2*l-.1*s,1-.16*l+.12*s];
+}
 function drawFighter(f){
   if(f.rag){f.rag.draw(ctx,f.clone?.72:f.alpha,PAPER);return;}
   const s=f.scale,gy=groundY(f.x,f.y-2);
@@ -3148,7 +3159,10 @@ function drawFighter(f){
   if(!(f.fade&&f.state==='roll'))for(const tr of f.trail)drawBody(ctx,tr.v,clamp(tr.life/.26,0,1)*.3,PAPER);
   const fv=f.view();
   weaponTrail(f,fv);
+  const [sqx,sqy]=squash(f,fv);
+  if(sqx!==1){ctx.save();ctx.translate(f.x,f.y);ctx.scale(sqx,sqy);ctx.translate(-f.x,-f.y);}
   drawBody(ctx,fv,f.clone?(f.life!==undefined?.55:.72):(f.fade&&fv.state==='roll'?.14:f.alpha),PAPER);
+  if(sqx!==1)ctx.restore();
   if(f.has('shield')){
     ctx.beginPath();ctx.arc(f.x,f.y-62*s,78*s,0,TAU);
     ctx.fillStyle='rgba(246,201,40,.16)';ctx.fill();
