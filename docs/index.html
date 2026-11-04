@@ -232,9 +232,12 @@ body.playing #menu{display:none}
 body.playing #game{position:fixed;inset:0;z-index:5;background:var(--desk);display:flex;flex-direction:row;align-items:flex-end;justify-content:center;gap:10px;container-type:normal;
   padding:8px max(8px,env(safe-area-inset-right,0px)) 14px max(8px,env(safe-area-inset-left,0px))}
 body.playing .stage{order:1;align-self:center;flex:0 1 auto;width:min(calc(100vw - 20px),calc((100dvh - 20px) * 16 / 9));box-shadow:4px 4px 0 var(--ink)}
+/* every device: the arena fills the whole window; a screen wider than 16:9 gets extended backdrop at the sides */
+body.playing:not(.touch) #game{padding:0;background:#11141c}
+body.playing:not(.touch) .stage{width:100vw;height:100dvh;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none}
 /* phones: the arena fills the screen and the controls float over its bottom corners, see-through */
 body.playing.touch #game{padding:0;align-items:center;background:#11141c}
-body.playing.touch .stage{width:min(100vw,calc(100dvh * 16 / 9));border:0;border-radius:0;box-shadow:none}
+body.playing.touch .stage{width:100vw;height:100dvh;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none}
 body.playing.touch .pad{display:block;position:fixed;inset:0;z-index:6;pointer-events:none}
 body.playing.touch .pad .cl{position:absolute;bottom:max(10px,env(safe-area-inset-bottom,0px));pointer-events:auto;gap:7px}
 body.playing.touch .pad .cl.dpad{left:max(12px,env(safe-area-inset-left,0px));width:min(186px,27vw)}
@@ -246,7 +249,7 @@ body.playing.touch .key.ready{background:rgba(246,201,40,.75)}
 body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bottom:6px;font-size:12px;padding:0 9px;opacity:.85}
 @media (max-aspect-ratio:1/1){
   /* phone held upright: arena on top, controls in the space below it */
-  body.playing.touch .stage{width:100vw}
+  body.playing.touch .stage{width:100vw;height:auto;aspect-ratio:16/9}
   body.playing.touch .pad .cl{bottom:max(24px,env(safe-area-inset-bottom,0px))}
   body.playing.touch .pad .cl.dpad{width:min(210px,46vw)}
   body.playing.touch .pad .cl:not(.dpad){width:min(190px,42vw)}
@@ -3329,19 +3332,28 @@ function render(){
   const cw=cv.clientWidth||CFG.W,chh=cv.clientHeight||CFG.H,dpr=Math.min(2,window.devicePixelRatio||1);
   const pw=Math.round(cw*dpr),ph=Math.round(chh*dpr);
   if(cv.width!==pw||cv.height!==ph){cv.width=pw;cv.height=ph;}
-  ctx.setTransform(pw/CFG.W,0,0,ph/CFG.H,0,0);
-  U=clamp(CFG.W/cw*.55,1,1.9);
-  ctx.fillStyle=PAPER;ctx.fillRect(0,0,CFG.W,CFG.H);
+  const sc=Math.min(pw/CFG.W,ph/CFG.H),ox=(pw-CFG.W*sc)/2,oy=(ph-CFG.H*sc)/2;
+  const wide=ox>1||oy>1;
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle=PAPER;ctx.fillRect(0,0,pw,ph);
+  ctx.setTransform(sc,0,0,sc,ox,oy);
+  U=clamp(CFG.W/(CFG.W*sc/dpr)*.55,1,1.9);
   ctx.save();
   if(g.shake>0)ctx.translate((Math.random()-.5)*g.shake,(Math.random()-.5)*g.shake);
   const kz=cam.z*(1+g.kick*.03);
   ctx.translate(CFG.W/2,CFG.H/2);ctx.scale(kz,kz);ctx.translate(-cam.x,-cam.y);
   if(BG)ctx.drawImage(BG,0,0,CFG.W,CFG.H);
+  if(wide&&BG){
+    // screen is wider than 16:9: mirror the backdrop to either side and dim it so the real arena stays obvious
+    ctx.save();ctx.scale(-1,1);ctx.drawImage(BG,0,0,CFG.W,CFG.H);ctx.restore();
+    ctx.save();ctx.translate(CFG.W*2,0);ctx.scale(-1,1);ctx.drawImage(BG,0,0,CFG.W,CFG.H);ctx.restore();
+    ctx.fillStyle='rgba(20,26,44,.3)';ctx.fillRect(-CFG.W,-CFG.H,CFG.W,CFG.H*3);ctx.fillRect(CFG.W,-CFG.H,CFG.W,CFG.H*3);
+  }
   drawAmbient(ctx,g.arena,g.clock);
   drawStage(ctx,g.st,g.arena,g.clock+(g.mode==='guest'?g.ckOff:0));
   let dark=0;
   for(const f of g.fighters)if(f.state==='super'){const ap=f.atk?f.atk.t/f.atk.dur:(f.ap||0);if(ap<.45)dark=Math.max(dark,.5*Math.min(1,ap/.08));}
-  if(dark>0){ctx.fillStyle='rgba(16,10,40,'+dark.toFixed(3)+')';ctx.fillRect(-50,-50,CFG.W+100,CFG.H+100);}
+  if(dark>0){ctx.fillStyle='rgba(16,10,40,'+dark.toFixed(3)+')';ctx.fillRect(-CFG.W,-CFG.H,CFG.W*3,CFG.H*3);}
   drawWaves();
   for(const p of g.pickups)drawPickup(p);
   for(const p of g.tools)drawToolPickup(p);
@@ -3355,7 +3367,7 @@ function render(){
   ctx.restore();
   drawHUD();drawTips();drawVS();drawBanner();drawCallout();
   if(g.phase==='over'&&g.endBanner&&!g.banner)drawBig(g.endBanner.text,g.endBanner.color,1,.85,CFG.H/2+10);
-  if(g.flash>0){ctx.fillStyle='rgba(255,255,255,'+(g.flash*.85).toFixed(3)+')';ctx.fillRect(0,0,CFG.W,CFG.H);}
+  if(g.flash>0){ctx.fillStyle='rgba(255,255,255,'+(g.flash*.85).toFixed(3)+')';ctx.fillRect(-CFG.W,-CFG.H,CFG.W*3,CFG.H*3);}
 }
 
 
