@@ -61,6 +61,8 @@ canvas#cv{display:block;width:100%;height:100%}
 .hb:active,.back:active,.btn:active,.mode:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
 .hb.primary{background:var(--blue);color:#fff}
 .hb .badge{position:absolute;top:-9px;right:-9px}
+.hb-sub{display:block;margin-top:3px;font:400 clamp(12px,2.3vh,15px)/1.15 var(--font-body);letter-spacing:0;opacity:.9}
+.hb-sub:empty{display:none}
 .badge{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--red);color:#fff;font:700 13px/1 var(--font-body);border:2px solid var(--ink)}
 .toast{position:fixed;left:50%;bottom:calc(var(--pb) + 6px);transform:translateX(-50%);z-index:40;margin:0;max-width:min(92vw,560px);padding:8px 14px;border:2.5px solid var(--ink);border-radius:12px;background:var(--note);box-shadow:3px 3px 0 var(--ink);font-size:15px;text-align:center}
 @media (max-aspect-ratio:1/1){
@@ -69,6 +71,7 @@ canvas#cv{display:block;width:100%;height:100%}
   #game{container-type:inline-size}
   .stage{width:100%}
   .home-btns{display:grid;grid-template-columns:1fr 1fr}
+  .home-btns #hbPlay{grid-column:1/-1}
 }
 
 /* ---------- overlays inside the arena ---------- */
@@ -305,7 +308,8 @@ body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bot
       </div>
     </header>
     <nav class="home-btns" aria-label="Main menu">
-      <button class="hb primary" id="hbPlay" type="button">Play</button>
+      <button class="hb primary" id="hbPlay" type="button">Play<small class="hb-sub" id="hbPlaySub"></small></button>
+      <button class="hb" id="hbModes" type="button">Modes</button>
       <button class="hb" id="hbQuest" type="button">Quest <span class="badge" id="questBadge" hidden></span></button>
       <button class="hb" id="hbArmor" type="button">Armor</button>
       <button class="hb" id="hbSettings" type="button">Settings <span class="badge" id="setBadge" hidden></span></button>
@@ -2398,6 +2402,21 @@ function tipMark(act){
   tip.done[k]=true;
   if(TIPS.every(t=>t[0]==='special'||tip.done[t[0]])){save.tutDone=true;writeSave();}
 }
+// AZERTY keyboards: controls already use physical keys (ZQSD works), so only the labels change: W shows as Z, A as Q
+let azerty=false;
+function useAzerty(){
+  if(azerty)return;azerty=true;
+  const sw=s=>s.replace(/\bW\b/g,'Z').replace(/\bA\b/g,'Q');
+  for(const t of TIPS)t[1]=sw(t[1]);
+  for(const m of MODES)if(m.id==='duo')m.note=m.note.replace('WASD','ZQSD');
+  for(const k of document.querySelectorAll('#scrGuide kbd'))k.textContent=sw(k.textContent);
+  try{refreshMenu();}catch(e){}
+}
+try{if(navigator.keyboard&&navigator.keyboard.getLayoutMap)navigator.keyboard.getLayoutMap().then(m=>{if(m.get('KeyW')==='z'||m.get('KeyQ')==='a')useAzerty();}).catch(()=>{});}catch(e){}
+document.addEventListener('keydown',e=>{
+  if(azerty||!e.key||e.key.length!==1)return;const k=e.key.toLowerCase();
+  if((e.code==='KeyW'&&k==='z')||(e.code==='KeyQ'&&k==='a')||(e.code==='KeyA'&&k==='q')||(e.code==='KeyZ'&&k==='w'))useAzerty();
+},true);
 const TIP_KEYS={move:['left','right'],jump:['jump'],punch:['punch'],kick:['kick'],block:['block'],special:['special']};
 let tipGlow='';
 function drawTips(){
@@ -4467,8 +4486,10 @@ for(const b of document.querySelectorAll('[data-back]'))b.addEventListener('clic
 $('hbPlay').addEventListener('click',()=>{
   // a brand-new player's first Play tap starts an easy Quick Match with the control guide; after that Play opens the mode menu
   if(!save.firstFight&&save.xp===0&&save.wins===0){save.firstFight=true;save.mode='versus';save.diff='easy';save.arena='notebook';writeSave();refreshMenu();startGame('versus');return;}
-  openScr('scrPlay');
+  // one click to a fight: Play starts the last match setup again; Modes opens the mode menu
+  const m=quickMode();save.mode=m;writeSave();startGame(m);
 });
+$('hbModes').addEventListener('click',()=>openScr('scrPlay'));
 $('hbQuest').addEventListener('click',()=>openScr('scrQuest'));
 $('hbArmor').addEventListener('click',()=>openScr('scrArmor'));
 $('hbSettings').addEventListener('click',()=>openScr('scrSettings'));
@@ -4572,7 +4593,17 @@ function showDaily(d){
   el.textContent='Day '+d.count+' in a row! You got '+d.reward+' coins for playing today.'+(d.count<7?' Come back tomorrow for '+DAILY_REWARD[Math.min(d.count+1,7)-1]+'.':'');
 }
 
+function quickMode(){
+  const m=save.mode;
+  return MODES.some(x=>x.id===m)&&!(m==='duo'&&document.body.classList.contains('touch'))?m:'versus';
+}
+function playSubText(){
+  if(!save.firstFight&&save.xp===0&&save.wins===0)return 'Quick Match · Easy';
+  const m=MODES.find(x=>x.id===quickMode());
+  return m.name+(m.diff?' · '+cap(save.diff):'');
+}
 function refreshMenu(){
+  $('hbPlaySub').textContent=playSubText();
   renderProfile();
   if(curScr==='scrArmor')renderArmor();
   if(curScr==='scrQuest')renderQuests();
