@@ -81,6 +81,7 @@ canvas#cv{display:block;width:100%;height:100%}
 }
 
 /* ---------- overlays inside the arena ---------- */
+.net-inv{display:flex;gap:8px;align-items:center;margin:8px 0;min-width:0}.net-inv input{flex:1;min-width:0;font-size:14px}
 .pausechip{position:absolute;right:8px;bottom:8px;display:none;font:400 14px/1.2 var(--font-display);padding:2px 10px;border:2.5px solid var(--ink);background:var(--card);border-radius:10px;box-shadow:2px 2px 0 var(--ink)}
 body.playing .pausechip{display:block}
 .ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(238,243,248,.9);padding:8px;text-align:center}
@@ -339,6 +340,7 @@ body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bot
         <div class="panel">
           <h2 class="net-title" id="netTitle">Finding a player</h2>
           <p class="stats net-status" id="netStatus" aria-live="polite"></p>
+          <div class="net-inv" id="netInv" hidden><input class="name-in" id="netLink" readonly aria-label="Invite link"><button class="btn" id="netCopy" type="button">Copy link</button></div>
           <p class="stats net-priv">Online play shares your player name, level, fighter and armor with your opponent. <a href="https://brawl.expresslearn.my/privacy.html" target="_blank" rel="noopener">Privacy Policy</a></p>
           <div class="row">
             <button class="btn alt" id="netCancel" type="button">Cancel</button>
@@ -402,7 +404,7 @@ body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bot
       <div class="arenas" id="arenas"></div>
     </div>
   </div>
-  <div class="scr-ft"><p class="hint" id="modeNote"></p><button class="btn fight" id="fightBtn" type="button">Fight!</button></div>
+  <div class="scr-ft"><p class="hint" id="modeNote"></p><button class="btn alt" id="friendBtn" type="button" hidden>Invite a friend</button><button class="btn fight" id="fightBtn" type="button">Fight!</button></div>
 </section>
 
 <section class="scr" id="scrQuest" hidden aria-label="Quests">
@@ -2093,9 +2095,9 @@ function setArena(id){
 }
 
 /* ================= GAME FLOW ================= */
-function startGame(mode){
+function startGame(mode,room){
   ensureAudio();closeScr();
-  if(mode==='online'){netStartSearch();return;}
+  if(mode==='online'){netStartSearch(okRoom(room)?room:null);return;}
   if(net.state!=='idle')netLeave();
   g.mode=mode;g.diffUsed=save.diff;g.score=0;g.wins=[0,0];g.round=1;g.stage=0;g.continues=CFG.CONTINUES;g.wave=0;
   g.endBanner=null;g.paused=false;g.stats=newStats();g.unlockBefore=unlockedIds();g.run=newRun();
@@ -3630,10 +3632,32 @@ class Mqtt{
 
 const net={seq:0,oppSeq:0,oppSeqT:0,c:null,bi:0,tries:0,id:rid(8),state:'idle',role:null,mid:null,opp:null,invite:null,seekT:0,searchT:0,seen:{},
   lastRecv:0,snapT:0,snapN:0,inT:0,inKey:'',hiT:0,statusT:0,connecting:false,connT:0,err:'',
-  cnt:[0,0,0,0,0,0],oppCnt:[0,0,0,0,0,0],oppHold:{l:false,r:false,b:false,j:false,d:false},events:[],rematchMe:false,rematchOpp:false,started:false,maxCombo:0};
+  cnt:[0,0,0,0,0,0],oppCnt:[0,0,0,0,0,0],oppHold:{l:false,r:false,b:false,j:false,d:false},events:[],rematchMe:false,rematchOpp:false,started:false,maxCombo:0,room:null,link:''};
 const NT=s=>NET_PREFIX+'/'+s;
 const myTopic=()=>NT('m/'+net.mid+(net.role==='host'?'/g':'/h'));
 const theirTopic=()=>NT('m/'+net.mid+(net.role==='host'?'/h':'/g'));
+// ---- private rooms: a friend joins with an invite link; the room is just its own matchmaking channel ----
+const okRoom=r=>typeof r==='string'&&/^[a-z0-9]{6}$/.test(r);
+const lobbyT=()=>NT(net.room?'r/'+net.room:'lobby');
+function inviteUrl(){
+  if(CG){try{const l=CG.game.inviteLink({room:net.room});if(l)return l;}catch(e){}}
+  const base=/^https?:$/.test(location.protocol)&&!IS_APP&&!PREVIEW?location.origin+location.pathname:'https://brawl.expresslearn.my/';
+  return base+'?room='+net.room;
+}
+function inviteRoomParam(){
+  let r=null;
+  try{if(CG)r=CG.game.getInviteParam('room');}catch(e){}
+  if(!r){try{r=new URLSearchParams(location.search).get('room');}catch(e){}}
+  return okRoom(r)?r:null;
+}
+// CrazyGames room data: joinable while waiting, closed once the match starts, left when we leave
+function cgRoom(st){
+  if(!CG||!net.room)return;
+  const call=f=>{try{f();}catch(e){}};
+  if(st==='open'){call(()=>CG.game.updateRoom({roomId:net.room,isJoinable:true,inviteParams:{room:net.room}}));call(()=>CG.game.showInviteButton({room:net.room}));}
+  else if(st==='full'){call(()=>CG.game.updateRoom({roomId:net.room,isJoinable:false}));call(()=>CG.game.hideInviteButton());}
+  else{call(()=>CG.game.hideInviteButton());call(()=>CG.game.leftRoom());}
+}
 function netEv(...a){
   if(g.mode!=='online'||net.role!=='host'||net.state!=='match'||net.events.length>=80)return;
   net.events.push(a.map(v=>typeof v==='number'?r1(v):v));
@@ -3664,19 +3688,21 @@ function netConnect(){
 function netOnUp(){
   if(!net.c)return;
   const subs=[NT('u/'+net.id)];
-  if(net.state==='seeking')subs.push(NT('lobby'));
+  if(net.state==='seeking')subs.push(lobbyT());
   if(net.state==='match')subs.push(myTopic());
   net.c.subscribe(subs);
   if(net.state==='seeking')netSeek();
   netStatus();
 }
-function netSeek(){net.seekT=performance.now();if(net.c)net.c.publish(NT('lobby'),{t:'seek',id:net.id,v:1});}
+function netSeek(){net.seekT=performance.now();if(net.c)net.c.publish(lobbyT(),{t:'seek',id:net.id,v:1});}
 function sendTo(id,m){if(net.c)net.c.publish(NT('u/'+id),m);}
 function netSend(m){if(net.c&&net.state==='match')net.c.publish(theirTopic(),m);}
 
-function netStartSearch(){
+function netStartSearch(room){
   ensureAudio();closeScr();
+  if(room===undefined)room=net.room;
   netLeave();
+  net.room=okRoom(room)?room:null;net.link=net.room?inviteUrl():'';cgRoom('open');
   net.state='seeking';net.searchT=performance.now();net.seekT=0;net.invite=null;net.seen={};net.err='';net.tries=0;
   $('netOv').hidden=false;$('netTitle').textContent='Finding a player';
   $('netCpu').hidden=true;$('netRetry').hidden=true;$('netCancel').hidden=false;
@@ -3690,16 +3716,18 @@ function netLeaveMatch(bye){
   net.state='idle';net.role=null;net.started=false;net.invite=null;
 }
 function netLeave(){
-  if(net.state==='seeking'&&net.c)net.c.unsubscribe([NT('lobby')]);
+  if(net.state==='seeking'&&net.c)net.c.unsubscribe([lobbyT()]);
   netLeaveMatch(true);
   $('netOv').hidden=true;
+  if(net.room){cgRoom('left');net.room=null;}
 }
 function beginMatch(role,m,mid){
   net.state='match';net.role=role;net.mid=mid;
   net.opp={id:m.id,name:cleanName(m.name),skin:SKINS.some(k=>k.id===m.skin)?m.skin:'band',lv:num(m.lv,1,MAX_LV,1)|0,gear:cleanGear(m.gr)};
   net.lastRecv=performance.now();net.hiT=0;net.started=false;net.rematchMe=net.rematchOpp=false;net.invite=null;
-  net.c.unsubscribe([NT('lobby')]);
+  net.c.unsubscribe([lobbyT()]);
   net.c.subscribe([myTopic()]);
+  cgRoom('full');$('netInv').hidden=true;
   if(role==='host')hostStart();
   else{$('netTitle').textContent='Player found!';$('netCancel').hidden=true;netStatus('Starting the match with '+net.opp.name+'…');}
 }
@@ -3718,7 +3746,7 @@ function netOnMsg(topic,bytes){
   let m;try{m=JSON.parse(text);}catch(e){return;}
   if(!m||typeof m!=='object'||Array.isArray(m)||typeof m.t!=='string')return;
   const now=performance.now();
-  if(topic===NT('lobby')){
+  if(topic===lobbyT()){
     if(m.t!=='seek'||!okId(m.id)||m.id===net.id||net.state!=='seeking')return;
     net.seen[m.id]=now;
     if(!net.invite&&net.id<m.id){
@@ -4193,6 +4221,13 @@ function netStatus(txt){
   if(txt){el.textContent=txt;return;}
   if(net.err){$('netTitle').textContent='Can\'t connect';el.textContent=net.err;$('netRetry').hidden=false;$('netCpu').hidden=false;return;}
   $('netRetry').hidden=true;
+  $('netInv').hidden=!(net.state==='seeking'&&net.room);
+  if(net.state==='seeking'&&net.room){
+    $('netTitle').textContent='Waiting for your friend';
+    if($('netLink').value!==net.link)$('netLink').value=net.link;
+    el.textContent=(!net.c||!net.c.up)?'Connecting to the online server…':'Room '+net.room.toUpperCase()+'. Send this link to a friend; the match starts as soon as they open it.';
+    $('netCpu').hidden=true;return;
+  }
   if(net.state==='seeking'){
     const s=Math.floor((performance.now()-net.searchT)/1000),others=Object.keys(net.seen).length;
     $('netTitle').textContent='Finding a player';
@@ -4688,7 +4723,7 @@ function refreshMenu(){
   {const T=TRAITS[save.skin]||TRAITS.band,sk=SKINS.find(k=>k.id===save.skin)||SKINS[0];$('skinHint').textContent=sk.name+' · '+T.role+'. '+T.info+' Special: '+T.sigName+', '+SIG_INFO[T.sig]+'.';}
   for(const b of $('arenas').children)b.setAttribute('aria-pressed',b.dataset.a===save.arena?'true':'false');
   for(const b of document.querySelectorAll('#diffSeg .seg-b'))b.setAttribute('aria-pressed',b.dataset.d===save.diff?'true':'false');
-  $('diffField').hidden=!mode.diff;
+  $('diffField').hidden=!mode.diff;$('friendBtn').hidden=mode.id!=='online';
   $('nameField').hidden=mode.id!=='online';
   if(document.activeElement!==$('nameInput'))$('nameInput').value=save.name;
   $('modeNote').textContent=mode.note+(mode.id==='online'&&PREVIEW?' This web preview can\'t connect, so play online from the Android app.':'');
@@ -4813,6 +4848,13 @@ $('resPrimary').addEventListener('click',()=>{ensureAudio();if(resultAction)resu
 $('resMenu').addEventListener('click',toMenu);
 $('resAlt').addEventListener('click',()=>{ensureAudio();netStartSearch();});
 $('netCancel').addEventListener('click',()=>{netLeave();});
+$('friendBtn').addEventListener('click',()=>startGame('online',rid(6)));
+$('netCopy').addEventListener('click',()=>{
+  const url=net.link,btn=$('netCopy'),done=t=>{btn.textContent=t;setTimeout(()=>{btn.textContent='Copy link';},1600);};
+  const pick=()=>{try{const i=$('netLink');i.focus();i.select();}catch(e){}};
+  if(navigator.share&&document.body.classList.contains('touch')){navigator.share({title:'Stickman Brawl',text:'Fight me in Stickman Brawl!',url}).catch(()=>{});return;}
+  try{navigator.clipboard.writeText(url).then(()=>done('Copied!'),()=>{pick();done('Select & copy');});}catch(e){pick();done('Select & copy');}
+});
 $('netRetry').addEventListener('click',()=>{netStartSearch();});
 $('netCpu').addEventListener('click',()=>{netLeave();startGame('versus');});
 $('nameInput').addEventListener('input',e=>{save.name=cleanName(e.target.value);writeSave();});
@@ -4873,9 +4915,11 @@ showDaily(dailyCheck());
 refreshMenu();syncToggles();
 startDemo();
 // CrazyGames: a brand-new player lands in a fight right away (instant multiplayer goes straight to matchmaking)
-if(CG){
+const invRoom=inviteRoomParam();
+if(invRoom)setTimeout(()=>startGame('online',invRoom),300);
+else if(CG){
   let im=false;try{im=!!CG.game.isInstantMultiplayer;}catch(e){}
-  if(im)setTimeout(()=>startGame('online'),300);
+  if(im)setTimeout(()=>startGame('online',rid(6)),300);
   else if(!save.xp&&!save.wins){save.mode='arcade';setTimeout(()=>startGame('arcade'),300);}
 }
 

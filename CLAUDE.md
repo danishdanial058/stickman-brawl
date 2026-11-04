@@ -29,6 +29,7 @@ Other web files: `docs/privacy.html` (privacy policy; contact `stickmanbrawl.sup
 - Main server: Cloudflare Worker + Durable Object (`cloudflare/src/index.js`, `wrangler.toml`), URL `wss://stickman-brawl.hackerrank.workers.dev/mqtt`. Backup: Render Node server (`server/server.js`, `render.yaml`) at `wss://stickman-brawl-server.onrender.com/mqtt`. Both accept the topic prefixes `sbx/` and `stickmanbrawl-dd058/`.
 - Binary packets: snapshots start with `0xB4` (protocol v4, about 110 bytes, every 32 ms) and inputs with `0xB5`. The input flags byte holds l/r/b/j/d plus the dodge direction (32 = right, 64 = left). If you change the packet format, bump the protocol version and the topic prefix together.
 - Everything received is untrusted: parse it defensively and clamp it (`num`, `okColor`, `cleanName`).
+- Private rooms: "Invite a friend" (Online setup screen) makes a 6-character room. The room is its own matchmaking topic (`lobbyT()` → `r/<room>` instead of `lobby`). Invite links carry `?room=` (website/app) or the CrazyGames invite param `room`, and opening one joins that room at boot. On CrazyGames, `cgRoom()` calls `updateRoom`/`showInviteButton`/`hideInviteButton`/`leftRoom`, and `isInstantMultiplayer` opens a new room right away.
 - Local testing: `?broker=ws://127.0.0.1:PORT/mqtt` makes the game use a local broker and also exposes `window.__netdbg.g`, the game state, for test scripts.
 
 ## Secrets
@@ -58,5 +59,5 @@ Keep API keys in `.env`, which git ignores (`.env.example` is the template), or 
 ## Open ideas / to-do
 
 - Dodge on the joystick needs a quick double flick. Options were offered: add a **Dodge button** and/or loosen the flick timing (the user hasn't chosen yet).
-- Polish pass, then resubmit to CrazyGames. Possible extras there: private rooms/invite links, leaderboard.
+- Polish pass done (Nov 2026); resubmit to CrazyGames. Possible extra: leaderboard.
 - Big Ink boss redesign, a cloud save transfer code, a release keystore for the Play Store.
