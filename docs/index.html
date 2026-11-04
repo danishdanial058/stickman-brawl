@@ -232,17 +232,25 @@ body.playing #menu{display:none}
 body.playing #game{position:fixed;inset:0;z-index:5;background:var(--desk);display:flex;flex-direction:row;align-items:flex-end;justify-content:center;gap:10px;container-type:normal;
   padding:8px max(8px,env(safe-area-inset-right,0px)) 14px max(8px,env(safe-area-inset-left,0px))}
 body.playing .stage{order:1;align-self:center;flex:0 1 auto;width:min(calc(100vw - 20px),calc((100dvh - 20px) * 16 / 9));box-shadow:4px 4px 0 var(--ink)}
-body.playing.touch .pad{display:contents}
-body.playing.touch .stage{width:min(calc(100vw - 370px),calc((100dvh - 20px) * 16 / 9))}
-body.playing.touch .pad .cl{flex:0 0 148px;max-width:148px}
-body.playing.touch .pad .cl.dpad{flex-basis:186px;max-width:186px}
-body.playing.touch .pad .cl:first-child{order:0}
-body.playing.touch .pad .cl:last-child{order:2}
-body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bottom:6px;font-size:13px;padding:1px 9px}
+/* phones: the arena fills the screen and the controls float over its bottom corners, see-through */
+body.playing.touch #game{padding:0;align-items:center;background:#11141c}
+body.playing.touch .stage{width:min(100vw,calc(100dvh * 16 / 9));border:0;border-radius:0;box-shadow:none}
+body.playing.touch .pad{display:block;position:fixed;inset:0;z-index:6;pointer-events:none}
+body.playing.touch .pad .cl{position:absolute;bottom:max(10px,env(safe-area-inset-bottom,0px));pointer-events:auto;gap:7px}
+body.playing.touch .pad .cl.dpad{left:max(12px,env(safe-area-inset-left,0px));width:min(186px,27vw)}
+body.playing.touch .pad .cl:not(.dpad){right:max(12px,env(safe-area-inset-right,0px));width:min(160px,24vw)}
+body.playing.touch .key{height:min(58px,16vh);background:rgba(255,255,255,.5);border-color:rgba(27,35,51,.7);box-shadow:none;font-size:15px}
+body.playing.touch .key.arrow{font-size:20px}
+body.playing.touch .key.on{background:rgba(246,201,40,.85);transform:scale(.94);box-shadow:none}
+body.playing.touch .key.ready{background:rgba(246,201,40,.75)}
+body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bottom:6px;font-size:12px;padding:0 9px;opacity:.85}
 @media (max-aspect-ratio:1/1){
-  body.playing.touch #game{flex-wrap:wrap;align-content:center}
-  body.playing.touch .stage{width:100%;order:0}
-  body.playing.touch .pad .cl,body.playing.touch .pad .cl.dpad{order:1;flex:1 1 40%}
+  /* phone held upright: arena on top, controls in the space below it */
+  body.playing.touch .stage{width:100vw}
+  body.playing.touch .pad .cl{bottom:max(24px,env(safe-area-inset-bottom,0px))}
+  body.playing.touch .pad .cl.dpad{width:min(210px,46vw)}
+  body.playing.touch .pad .cl:not(.dpad){width:min(190px,42vw)}
+  body.playing.touch .key{height:62px;background:#fff}
 }
 @media (prefers-reduced-motion:reduce){.hb,.btn,.key{transition:none}}
 </style>
