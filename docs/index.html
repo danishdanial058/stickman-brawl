@@ -114,22 +114,28 @@ body.playing .pausechip{display:block}
 .mode .r{margin-top:auto;font-size:13px;color:var(--ink);background:var(--note);border-radius:6px;padding:0 6px}
 .mode .r:empty{display:none}
 .mode[aria-pressed="true"]{background:var(--marker)}
-@media (max-aspect-ratio:1/1){.modes{grid-template-columns:1fr 1fr}}
+.mode{position:relative}
+.mode b,.mode .d,.mode .r{position:relative;z-index:1}
+.mode .d{max-width:72%}
+.mode .ic{position:absolute;right:clamp(6px,1.4vw,14px);bottom:clamp(4px,1.2vh,10px);width:clamp(56px,min(27vh,19vw),170px);height:auto;color:var(--ink);pointer-events:none}
+@media (max-aspect-ratio:1/1){.modes{grid-template-columns:1fr 1fr}.mode .ic{width:min(30vw,150px)}}
 
 /* setup: fighter, difficulty, arena */
 .setup-grid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.4fr);gap:clamp(10px,2vw,20px);align-content:start}
 .setup-l{display:flex;flex-direction:column;gap:clamp(6px,1.6vh,12px);min-width:0}
 .skins{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+@media (min-aspect-ratio:1/1){.skins{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .skin{display:flex;flex-direction:column;align-items:center;gap:1px;border:2.5px solid var(--ink);border-radius:10px;background:var(--paper);padding:3px 1px;min-width:0}
-.skin canvas{width:100%;max-width:clamp(30px,8vh,50px);aspect-ratio:4/5;height:auto;display:block}
+.skin canvas{width:100%;max-width:clamp(34px,13vh,84px);aspect-ratio:4/5;height:auto;display:block}
 .skin span{font-size:12px;line-height:1.05;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .skin[aria-pressed="true"]{background:var(--marker)}
 .skin.locked span{color:var(--ink-soft)}
-.arenas{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
-@media (max-aspect-ratio:1/1){.arenas{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.arenas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(5px,1vh,8px)}
+@media (max-aspect-ratio:1/1){.arenas{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-aspect-ratio:1/1) and (max-height:560px){.skins{grid-template-columns:repeat(5,minmax(0,1fr))}.skin canvas{max-width:clamp(30px,10vh,50px)}.arenas{grid-template-columns:repeat(6,minmax(0,1fr))}}
 .arena{border:2.5px solid var(--ink);border-radius:9px;padding:3px;background:var(--paper);display:flex;flex-direction:column;gap:2px;min-width:0}
 .arena canvas{width:100%;aspect-ratio:16/9;height:auto;border-radius:5px;border:1.5px solid var(--ink);display:block}
-.arena span{font-size:12px;line-height:1.1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arena span{font-size:13px;line-height:1.1;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .arena[aria-pressed="true"]{background:var(--marker)}
 .seg{display:flex;gap:6px;flex-wrap:wrap}
 .seg-b{border:2.5px solid var(--ink);background:var(--paper);border-radius:10px;padding:3px 14px;box-shadow:2px 2px 0 var(--ink)}
@@ -701,7 +707,7 @@ function seeded(seed){let s=seed>>>0;return ()=>{s=(s*1664525+1013904223)>>>0;re
 /* ================= SAVE (localStorage, always wrapped) ================= */
 const SAVE_KEY='stickman-brawl-v2';
 const DEF_SAVE={diff:'normal',mode:'arcade',skin:'band',arena:'notebook',streak:0,best:0,wins:0,ladderBest:0,ladderClear:false,bossBeat:false,survivalBest:0,music:true,muted:false,name:'',onlineWins:0,
-  xp:0,coins:0,tutDone:false,bestStreak:0,owned:{},equip:{head:null,body:null},daily:{last:'',count:0,best:0},quests:{day:'',list:[]},wq:{day:'',list:[]},mq:{day:'',list:[]},ach:{},achDone:{},life:{}};
+  xp:0,coins:0,tutDone:false,firstFight:false,bestStreak:0,owned:{},equip:{head:null,body:null},daily:{last:'',count:0,best:0},quests:{day:'',list:[]},wq:{day:'',list:[]},mq:{day:'',list:[]},ach:{},achDone:{},life:{}};
 function loadSave(){
   let s={};
   try{
@@ -4400,11 +4406,12 @@ function drawSkinPreview(c,k){
     x.fillStyle='#ffffff';x.fillRect(38.5,55,3,6);
   }
 }
+const MODE_ICON={arcade:'<path d="M8 74H32V60H56V46H80V32"/><path d="M68 26L70 10L77 18L82 7L87 18L94 10L96 26Z" fill="#f6c928"/><circle cx="20" cy="56" r="6"/><path d="M20 62V68"/>',online:'<circle cx="50" cy="40" r="28" fill="#dbe6ff"/><ellipse cx="50" cy="40" rx="12" ry="28"/><path d="M22 40H78M27 26H73M27 54H73"/>',versus:'<circle cx="26" cy="20" r="8"/><path d="M26 28V50M26 50L18 70M26 50L34 70M26 34L41 30M26 34L14 42"/><circle cx="74" cy="20" r="8"/><path d="M74 28V50M74 50L66 70M74 50L82 70M74 34L59 30M74 34L86 42"/><path d="M50 20L53 27L60 28L55 33L56 40L50 37L44 40L45 33L40 28L47 27Z" fill="#d1352b" stroke="#d1352b" stroke-width="2"/>',survival:'<path d="M50 6L80 17V39C80 57 66 69 50 76C34 69 20 57 20 39V17Z" fill="#d6f1e3"/><path d="M32 38Q38 30 44 38T56 38T68 38M32 50Q38 42 44 50T56 50T68 50" stroke="#2fa36b"/>',boss:'<path d="M33 34Q19 24 23 6Q30 22 42 26Z" fill="#f4efe6"/><path d="M67 34Q81 24 77 6Q70 22 58 26Z" fill="#f4efe6"/><circle cx="50" cy="48" r="24" fill="#2a2340"/><path d="M38 44L46 48M62 44L54 48M42 60Q50 55 58 60" stroke="#ffffff" stroke-width="3.5"/>',duo:'<rect x="8" y="26" width="84" height="40" rx="7" fill="#ffffff"/><path d="M18 38H22M30 38H34M42 38H46M54 38H58M66 38H70M18 48H22M30 48H34M42 48H46M54 48H58M66 48H70M34 58H66"/><path d="M80 38H82M80 48H82" stroke="#d1352b" stroke-width="5"/><path d="M18 38H22" stroke="#1d4fd7" stroke-width="5"/>'};
 function buildMenu(){
   const mEl=$('modes');
   for(const m of MODES){
     const b=document.createElement('button');b.type='button';b.className='mode';b.dataset.m=m.id;
-    b.innerHTML='<b>'+m.name+'</b><span class="d">'+m.desc+'</span><span class="r"></span>';
+    b.innerHTML='<b>'+m.name+'</b><span class="d">'+m.desc+'</span><span class="r"></span>'+(MODE_ICON[m.id]?'<svg class="ic" viewBox="0 0 100 80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">'+MODE_ICON[m.id]+'</svg>':'');
     b.addEventListener('click',()=>{save.mode=m.id;writeSave();openScr('scrSetup');});
     mEl.appendChild(b);
   }
@@ -4455,7 +4462,11 @@ function openScr(id){
 function closeScr(){for(const k of SCRS)$(k).hidden=true;curScr=null;}
 function backScr(){if(!curScr)return false;const p=SCR_PARENT[curScr];if(p)openScr(p);else{closeScr();renderProfile();}return true;}
 for(const b of document.querySelectorAll('[data-back]'))b.addEventListener('click',backScr);
-$('hbPlay').addEventListener('click',()=>openScr('scrPlay'));
+$('hbPlay').addEventListener('click',()=>{
+  // a brand-new player's first Play tap starts an easy Quick Match with the control guide; after that Play opens the mode menu
+  if(!save.firstFight&&save.xp===0&&save.wins===0){save.firstFight=true;save.mode='versus';save.diff='easy';save.arena='notebook';writeSave();refreshMenu();startGame('versus');return;}
+  openScr('scrPlay');
+});
 $('hbQuest').addEventListener('click',()=>openScr('scrQuest'));
 $('hbArmor').addEventListener('click',()=>openScr('scrArmor'));
 $('hbSettings').addEventListener('click',()=>openScr('scrSettings'));
