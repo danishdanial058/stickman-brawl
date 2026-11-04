@@ -3641,7 +3641,7 @@ function inviteUrl(){
 }
 function inviteRoomParam(){
   let r=null;
-  try{if(CG)r=CG.game.getInviteParam('room');}catch(e){}
+  try{if(CG){const ip=CG.game.inviteParams;r=ip&&ip.room;if(!r)r=CG.game.getInviteParam('room');}}catch(e){}
   if(!r){try{r=new URLSearchParams(location.search).get('room');}catch(e){}}
   return okRoom(r)?r:null;
 }
@@ -4915,8 +4915,10 @@ if(invRoom)setTimeout(()=>startGame('online',invRoom),300);
 else if(CG){
   let im=false;try{im=!!CG.game.isInstantMultiplayer;}catch(e){}
   if(im)setTimeout(()=>startGame('online',rid(6)),300);
-  else if(!save.xp&&!save.wins){save.mode='arcade';setTimeout(()=>startGame('arcade'),300);}
+  else if(!save.xp&&!save.wins&&!save.firstFight){save.firstFight=true;save.mode='versus';save.diff='easy';save.arena='notebook';writeSave();refreshMenu();setTimeout(()=>startGame('versus'),300);}
 }
+// CrazyGames: a player already in the game accepts a friend's invite (notification, link or friends list) -> join that room
+if(CG){try{CG.game.addJoinRoomListener(p=>{const r=p&&p.room;if(!okRoom(r))return;if(g.paused)pauseToggle();startGame('online',r);});}catch(e){}}
 
 let last=0,padReady=false;
 function loop(ts){
