@@ -224,6 +224,20 @@ body.playing #menu{display:none}
 body.playing #game{position:fixed;inset:0;z-index:5;background:var(--desk);display:flex;flex-direction:row;align-items:flex-end;justify-content:center;gap:10px;container-type:normal;
   padding:8px max(8px,env(safe-area-inset-right,0px)) 14px max(8px,env(safe-area-inset-left,0px))}
 body.playing .stage{order:1;align-self:center;flex:0 1 auto;width:min(calc(100vw - 20px),calc((100dvh - 20px) * 16 / 9));box-shadow:4px 4px 0 var(--ink)}
+/* joystick (Settings > Movement): replaces the arrow buttons on touch screens */
+.joy{display:none}
+body:not(.touch) #moveBtn{display:none}
+body.playing.touch.joy-on .pad .cl.dpad{display:none}
+body.playing.touch.joy-on .joy{display:block;position:absolute;left:0;bottom:0;width:44vw;height:72%;pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none}
+.joy-base{position:absolute;width:var(--js,128px);height:var(--js,128px);margin:calc(var(--js,128px) / -2) 0 0 calc(var(--js,128px) / -2);border-radius:50%;border:3px solid rgba(27,35,51,.6);background:rgba(255,255,255,.32);
+  left:calc(max(16px,env(safe-area-inset-left,0px)) + var(--js,128px) / 2);top:calc(100% - max(14px,env(safe-area-inset-bottom,0px)) - var(--js,128px) / 2);transition:opacity .2s;opacity:.75}
+.joy-base::before{content:"";position:absolute;inset:22%;border-radius:50%;border:2px dashed rgba(27,35,51,.25)}
+.joy-knob{position:absolute;left:50%;top:50%;width:46%;height:46%;margin:-23% 0 0 -23%;border-radius:50%;background:rgba(246,201,40,.92);border:3px solid var(--ink);box-shadow:0 2px 0 rgba(27,35,51,.4)}
+.joy.on .joy-base{opacity:1}
+.joy.tip .joy-base{animation:joyPulse 1.2s ease-in-out infinite}
+@keyframes joyPulse{0%,100%{box-shadow:0 0 0 0 rgba(246,201,40,.9)}50%{box-shadow:0 0 0 10px rgba(246,201,40,.45)}}
+body.playing.touch .joy{--js:min(132px,34vh)}
+@media (max-aspect-ratio:1/1){body.playing.touch.joy-on .joy{width:56vw;height:38vh}body.playing.touch .joy{--js:140px}}
 /* every device: the arena fills the whole window; a screen wider than 16:9 gets extended backdrop at the sides */
 body.playing:not(.touch) #game{padding:0;background:#11141c}
 body.playing:not(.touch) .stage{width:100vw;height:100dvh;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none}
@@ -320,6 +334,7 @@ body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bot
         <button class="key arrow" data-k="down" type="button" aria-label="Down: throw weapon, drop through a ledge, or fall faster">&#9660;</button>
         <button class="key arrow" data-k="right" type="button" aria-label="Right: move, double-tap to dodge">&#9654;</button>
       </div>
+      <div class="joy" id="joy" aria-label="Joystick: push left or right to move, flick twice to dodge, up to jump, down to throw or drop"><div class="joy-base" id="joyBase"><div class="joy-knob" id="joyKnob"></div></div></div>
       <div class="cl">
         <button class="key" data-k="punch" type="button">Punch</button>
         <button class="key" data-k="kick" type="button">Kick</button>
@@ -396,6 +411,7 @@ body.playing.touch .pausechip{left:50%;right:auto;transform:translateX(-50%);bot
   <div class="scr-bd sheet set-list">
     <button class="hb" id="musicBtn" type="button" aria-pressed="true">Music on</button>
     <button class="hb" id="soundBtn" type="button" aria-pressed="true">Sound on</button>
+    <button class="hb" id="moveBtn" type="button">Movement: Buttons</button>
     <button class="hb" id="guideBtn" type="button">Guide</button>
     <button class="hb" id="achBtn" type="button">Achievements <span class="badge" id="achBadge" hidden></span></button>
     <button class="hb" id="fsBtn" type="button">Full screen</button>
@@ -2377,6 +2393,7 @@ function drawTips(){
     // on phones the on-screen buttons glow until you have tried them
     const want=on?TIPS.filter(t=>!tip.done[t[0]]).map(t=>t[0]).join():'';
     if(want!==tipGlow){tipGlow=want;for(const b of document.querySelectorAll('.key'))b.classList.remove('tip');
+      joyEl.classList.toggle('tip',on&&(!tip.done.move||!tip.done.jump));
       if(on)for(const t of TIPS)if(!tip.done[t[0]])for(const k of TIP_KEYS[t[0]]){const el=document.querySelector('.key[data-k='+k+']');if(el)el.classList.add('tip');}}
     return;
   }
@@ -2414,7 +2431,7 @@ function fire(who,act){
   f.inp[act]=act==='jump'?.16:.2;
   if(act==='dodge')f.inp.dodgeDir=tapDir[who]||0;
 }
-function clearHolds(){for(const h of [hold.p1,hold.p2,virt])for(const k in h)h[k]=false;for(const b of document.querySelectorAll('.key.on'))b.classList.remove('on');}
+function clearHolds(){for(const h of [hold.p1,hold.p2,virt])for(const k in h)h[k]=false;for(const b of document.querySelectorAll('.key.on'))b.classList.remove('on');if(typeof joyReset==='function'&&joy.id!==null)joyReset();}
 document.addEventListener('keydown',e=>{
   if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
   if(e.code==='Escape'||(e.code==='KeyP'&&playingNow())){if(playingNow()||g.paused){e.preventDefault();ensureAudio();pauseToggle();}return;}
@@ -2439,6 +2456,57 @@ for(const b of document.querySelectorAll('.key')){
   b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up);
   b.addEventListener('contextmenu',e=>e.preventDefault());
 }
+/* ---- joystick: drag anywhere in the bottom-left; the stick re-centres where your thumb lands ----
+   left/right past the dead zone = move (flick the same way twice quickly = dodge), up = jump (flick up again in the air = double jump),
+   down = throw weapon / drop through a ledge / fall faster */
+const joy={id:null,cx:0,cy:0,dir:'',up:false,dn:false};
+const joyEl=$('joy'),joyBase=$('joyBase'),joyKnob=$('joyKnob');
+function joySet(dx,dy,r){
+  const m=Math.hypot(dx,dy),k=m>r?r/m:1,kx=dx*k,ky=dy*k;
+  joyKnob.style.transform='translate('+kx.toFixed(1)+'px,'+ky.toFixed(1)+'px)';
+  const nx=kx/r,ny=ky/r;
+  const dir=nx<-.32?'left':nx>.32?'right':'';
+  if(dir!==joy.dir){virt.left=dir==='left';virt.right=dir==='right';if(dir)pressAct('p1',dir);joy.dir=dir;}
+  const up=ny<-.5&&Math.abs(nx)<.92;
+  if(up!==joy.up){virt.jump=up;if(up)pressAct('p1','jump');joy.up=up;}
+  const dn=ny>.55&&Math.abs(nx)<.85;
+  if(dn!==joy.dn){virt.down=dn;if(dn)pressAct('p1','down');joy.dn=dn;}
+}
+function joyReset(){
+  joy.id=null;joy.dir='';joy.up=false;joy.dn=false;
+  virt.left=virt.right=virt.jump=virt.down=false;
+  joyEl.classList.remove('on');joyKnob.style.transform='';joyBase.style.left='';joyBase.style.top='';
+}
+joyEl.addEventListener('pointerdown',e=>{
+  if(joy.id!==null)return;
+  e.preventDefault();ensureAudio();
+  try{joyEl.setPointerCapture(e.pointerId);}catch(x){}
+  const z=joyEl.getBoundingClientRect(),r=joyBase.offsetWidth/2;
+  // keep the whole stick on screen
+  const x=clamp(e.clientX-z.left,r,z.width-r),y=clamp(e.clientY-z.top,r,z.height-r);
+  joy.id=e.pointerId;joy.cx=z.left+x;joy.cy=z.top+y;
+  joyBase.style.left=x+'px';joyBase.style.top=y+'px';joyEl.classList.add('on');
+  joySet(e.clientX-joy.cx,e.clientY-joy.cy,r*.62);
+});
+joyEl.addEventListener('pointermove',e=>{
+  if(e.pointerId!==joy.id)return;
+  e.preventDefault();
+  const r=joyBase.offsetWidth/2*.62;let dx=e.clientX-joy.cx,dy=e.clientY-joy.cy;
+  // dragging far past the rim drags the stick along, so the thumb never loses it
+  const m=Math.hypot(dx,dy),lim=r*1.6;
+  if(m>lim){const k=(m-lim)/m;joy.cx+=dx*k;joy.cy+=dy*k;const z=joyEl.getBoundingClientRect();joyBase.style.left=(joy.cx-z.left)+'px';joyBase.style.top=(joy.cy-z.top)+'px';dx=e.clientX-joy.cx;dy=e.clientY-joy.cy;}
+  joySet(dx,dy,r);
+});
+for(const ev of ['pointerup','pointercancel','lostpointercapture'])joyEl.addEventListener(ev,e=>{if(e.pointerId===joy.id)joyReset();});
+joyEl.addEventListener('contextmenu',e=>e.preventDefault());
+function applyMoveMode(){
+  const on=save.ctl==='joy';
+  document.body.classList.toggle('joy-on',on);
+  $('moveBtn').textContent='Movement: '+(on?'Joystick':'Buttons');
+  joyReset();
+}
+$('moveBtn').addEventListener('click',e=>{save.ctl=save.ctl==='joy'?'btn':'joy';writeSave();applyMoveMode();clearHolds();e.currentTarget.blur();});
+applyMoveMode();
 function pauseToggle(){
   if(g.mode==='online'||g.mode==='guest'){
     const show=$('pauseOv').hidden;
