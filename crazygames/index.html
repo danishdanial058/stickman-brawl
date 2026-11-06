@@ -3439,7 +3439,7 @@ function drawHUD(){
   const by=cy+r+12*u;
   if(g.mode==='guest'&&net.rtt){
     const pm=Math.round(net.rtt),pc=pm<90?'#2fa36b':pm<180?'#d99a00':'#d1352b';
-    txt('Ping '+pm+' ms',cx,by+44*u,13*u,pc,'center');
+    txt('Ping '+pm+' ms'+(p2p.open?' · direct':''),cx,by+44*u,13*u,pc,'center');
   }
   if(g.mode==='versus'||g.mode==='duo'||g.mode==='demo'||g.mode==='online'||g.mode==='guest'){
     for(let i=0;i<CFG.ROUNDS_TO_WIN;i++)for(const side of [0,1]){
@@ -3570,7 +3570,7 @@ const NET_BROKERS=(()=>{
   try{const b=new URLSearchParams(location.search).get('broker');if(b&&/^wss?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/[\w\-]*)?$/.test(b))return [b];}catch(e){}
   return [NET_SERVER,NET_BACKUP];
 })();
-if(NET_BROKERS[0]!==NET_SERVER)window.__netdbg={g,get pred(){return pred;},net:()=>net};
+if(NET_BROKERS[0]!==NET_SERVER)window.__netdbg={g,get pred(){return pred;},get p2p(){return p2p;},net:()=>net};
 const NET_WAKE=NET_BROKERS[0].replace(/^ws/,'http').replace(/\/mqtt$/,'/');
 const ACTS=['jump','punch','kick','special','dodge','throw'];
 const STATES=['idle','walk','jump','block','punch','upper','air','kick','dive','roll','special','super','smash','charge','slam','hit','ko','frozen','toss','shadow','rocket','crown','haunt'];
@@ -3703,6 +3703,54 @@ function netSeek(){net.seekT=performance.now();if(net.c)net.c.publish(lobbyT(),{
 function sendTo(id,m){if(net.c)net.c.publish(NT('u/'+id),m);}
 function netSend(m){if(net.c&&net.state==='match')net.c.publish(theirTopic(),m);}
 
+/* --- direct link: game packets try a peer-to-peer WebRTC data channel (no detour through the server, and a lost
+   packet never holds up the next one). The online server still handles matchmaking and is the fallback. --- */
+const RTC_ICE=[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']},{urls:'stun:stun.cloudflare.com:3478'}];
+const p2p={pc:null,dc:null,open:false,q:[],rx:0,mid:null};
+function p2pStop(){const pc=p2p.pc;p2p.pc=null;p2p.dc=null;p2p.open=false;p2p.q=[];if(pc){try{pc.close();}catch(e){}}}
+function p2pStart(){
+  p2pStop();
+  if(typeof RTCPeerConnection!=='function')return;
+  let pc;try{pc=new RTCPeerConnection({iceServers:RTC_ICE});}catch(e){return;}
+  p2p.pc=pc;p2p.mid=net.mid;
+  const mine=()=>p2p.pc===pc&&net.state==='match'&&net.mid===p2p.mid;
+  pc.onicecandidate=e=>{if(e.candidate&&mine()){const c=e.candidate;netSend({t:'ice',c:c.candidate,m:c.sdpMid,i:c.sdpMLineIndex});}};
+  pc.onconnectionstatechange=()=>{if(p2p.pc===pc&&(pc.connectionState==='failed'||pc.connectionState==='closed'))p2p.open=false;};
+  const setup=dc=>{dc.binaryType='arraybuffer';p2p.dc=dc;
+    dc.onopen=()=>{if(mine()){p2p.open=true;p2p.rx=performance.now();}};
+    dc.onclose=()=>{if(p2p.dc===dc)p2p.open=false;};
+    dc.onmessage=e=>{if(!mine()||!(e.data instanceof ArrayBuffer)||e.data.byteLength>4096)return;p2p.rx=performance.now();p2p.open=true;netOnMsg(myTopic(),new Uint8Array(e.data));};};
+  if(net.role==='host'){
+    setup(pc.createDataChannel('g',{ordered:false,maxRetransmits:0}));
+    pc.createOffer().then(o=>pc.setLocalDescription(o)).then(()=>{if(mine())netSend({t:'sdp',y:'offer',s:pc.localDescription.sdp});}).catch(()=>{});
+  }else pc.ondatachannel=e=>{if(mine())setup(e.channel);};
+}
+function p2pSignal(m){
+  const pc=p2p.pc;if(!pc||p2p.mid!==net.mid)return;
+  if(m.t==='sdp'){
+    if(typeof m.s!=='string'||m.s.length>12000)return;
+    if(net.role==='guest'&&m.y==='offer'){
+      pc.setRemoteDescription({type:'offer',sdp:m.s}).then(()=>{for(const c of p2p.q.splice(0))pc.addIceCandidate(c).catch(()=>{});return pc.createAnswer();})
+        .then(a=>pc.setLocalDescription(a)).then(()=>{if(p2p.pc===pc)netSend({t:'sdp',y:'answer',s:pc.localDescription.sdp});}).catch(()=>{});
+    }else if(net.role==='host'&&m.y==='answer'&&!pc.remoteDescription){
+      pc.setRemoteDescription({type:'answer',sdp:m.s}).then(()=>{for(const c of p2p.q.splice(0))pc.addIceCandidate(c).catch(()=>{});}).catch(()=>{});
+    }
+  }else if(m.t==='ice'){
+    if(typeof m.c!=='string'||m.c.length>600)return;
+    const c={candidate:m.c,sdpMid:typeof m.m==='string'&&m.m.length<40?m.m:null,sdpMLineIndex:Number.isInteger(m.i)&&m.i>=0&&m.i<8?m.i:0};
+    if(pc.remoteDescription)pc.addIceCandidate(c).catch(()=>{});else if(p2p.q.length<40)p2p.q.push(c);
+  }
+}
+// game packets: direct link when it is working, otherwise through the server
+function gameSend(bytes){
+  const dc=p2p.dc;
+  if(p2p.open&&dc&&dc.readyState==='open'&&dc.bufferedAmount<16384){
+    if(performance.now()-p2p.rx<900){try{dc.send(bytes);return;}catch(e){}}
+    else p2p.open=false;   // nothing came over the direct link for a while: use the server until it does
+  }
+  if(net.c&&net.state==='match')net.c.publishBin(theirTopic(),bytes);
+}
+
 function netStartSearch(room){
   ensureAudio();closeScr();
   if(room===undefined)room=net.room;
@@ -3718,7 +3766,7 @@ function netStartSearch(room){
 }
 function netLeaveMatch(bye){
   if(net.state==='match'){if(bye)netSend({t:'bye'});if(net.c)net.c.unsubscribe([myTopic()]);}
-  net.state='idle';net.role=null;net.started=false;net.invite=null;
+  net.state='idle';net.role=null;net.started=false;net.invite=null;p2pStop();
 }
 function netLeave(){
   if(net.state==='seeking'&&net.c)net.c.unsubscribe([lobbyT()]);
@@ -3728,11 +3776,12 @@ function netLeave(){
 }
 function beginMatch(role,m,mid){
   net.state='match';net.role=role;net.mid=mid;
-  net.jit=null;net.snapTs=0;net.rtt=0;NET_INTERP=80;
+  net.jit=null;net.snapTs=0;net.rtt=0;NET_INTERP=80;net.lastCk=null;
   net.opp={id:m.id,name:cleanName(m.name),skin:SKINS.some(k=>k.id===m.skin)?m.skin:'band',lv:num(m.lv,1,MAX_LV,1)|0,gear:cleanGear(m.gr)};
   net.lastRecv=performance.now();net.hiT=0;net.started=false;net.rematchMe=net.rematchOpp=false;net.invite=null;
   net.c.unsubscribe([lobbyT()]);
   net.c.subscribe([myTopic()]);
+  p2pStart();
   cgRoom('full');$('netInv').hidden=true;
   if(role==='host')hostStart();
   else{$('netTitle').textContent='Player found!';$('netCancel').hidden=true;netStatus('Starting the match with '+net.opp.name+'…');}
@@ -3776,6 +3825,7 @@ function netOnMsg(topic,bytes){
   }
   if(net.state==='match'&&topic===myTopic()){
     net.lastRecv=now;
+    if(m.t==='sdp'||m.t==='ice'){p2pSignal(m);return;}
     if(net.role==='host')hostMsg(m);else guestMsg(m);
   }
 }
@@ -3795,6 +3845,7 @@ function hostStart(){
 }
 function hostMsg(m){
   if(m.t==='in'){
+    if(Number.isInteger(m.s)&&m.s<net.oppSeq&&net.oppSeq-m.s<100000)return;   // an older input that arrived late
     if(Number.isInteger(m.s)&&m.s>=0&&m.s!==net.oppSeq){net.oppSeq=m.s;net.oppSeqT=performance.now();}
     const h=net.oppHold;h.l=m.l===true;h.r=m.r===true;h.b=m.b===true;h.j=m.j===true;h.d=m.d===true;
     if(Array.isArray(m.c)&&m.c.length===6){
@@ -3875,7 +3926,7 @@ function sendSnap(){
   if(tj&&tj.length>20000)tj=null;
   w.u16(tj?tj.length:0);if(tj)w.bytes(tj);
   net.lastSnapBytes=w.n;
-  net.c.publishBin(theirTopic(),w.out());
+  gameSend(w.out());
 }
 function decodeSnap(b){
   const r=new BR(b);r.u8();if(r.u8()!==4)return null;
@@ -4168,6 +4219,8 @@ function applySnap(m){
 function guestMsg(m){
   if(m.t==='start')guestStart(m);
   else if(m.t==='snap'){
+    if(net.lastCk!=null&&m.ck<=net.lastCk&&net.lastCk-m.ck<1)return;   // older than one we already used
+    net.lastCk=m.ck;
     snapTiming();
     if(!net.started&&m.i)guestStart(m.i);
     if(net.started&&g.mode==='guest')applySnap(m);
@@ -4211,11 +4264,11 @@ function sendInput(now){
   const h=hold.p1,l=!!(h.left||virt.left),r=!!(h.right||virt.right),b=!!(h.block||virt.block),j=!!(h.jump||virt.jump),d=!!(h.down||virt.down);
   const dd=net.lastDodge>0?32:(net.lastDodge<0?64:0);
   const key=(l?1:0)+(r?2:0)+(b?4:0)+(j?8:0)+(d?16:0)+dd+'|'+net.cnt.join(',');
-  if((key!==net.inKey&&now-net.inT>30)||now-net.inT>250){
+  if(key!==net.inKey||now-net.inT>=33){
     net.inKey=key;net.inT=now;net.seq++;
     pred.sent.push({seq:net.seq,t:now});if(pred.sent.length>120)pred.sent.shift();
     const w=new BW(32);w.u8(0xB5);w.u8((l?1:0)|(r?2:0)|(b?4:0)|(j?8:0)|(d?16:0)|dd);w.u32(net.seq);for(const v of net.cnt)w.u32(v);
-    if(net.c&&net.state==='match')net.c.publishBin(theirTopic(),w.out());
+    if(net.state==='match')gameSend(w.out());
   }
 }
 function requestRematch(){
@@ -4282,7 +4335,7 @@ function netTick(){
       return;
     }
     if(now-net.lastRecv>7000){netOppLeft(true);return;}
-    if(net.role==='host'){if(now-net.snapT>=32){net.snapT=now;sendSnap();}}
+    if(net.role==='host'){if(now>=net.snapT){net.snapT=Math.max(net.snapT+33.3,now-12);sendSnap();}}
     else sendInput(now);
   }
 }
