@@ -9,6 +9,7 @@ on:
       - 'crazygames/**'
       - 'cloudflare/**'
       - 'CLAUDE.md'
+      - '.github/workflows/deploy-server.yml'
   workflow_dispatch:
 
 permissions:

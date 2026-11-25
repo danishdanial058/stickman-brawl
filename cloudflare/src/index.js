@@ -7,6 +7,9 @@ const MAX_PACKET = 32 * 1024;                         // bytes per MQTT packet
 const MAX_SUBS = 16;                                  // topics per connection
 const RATE = 120;                                     // messages per second per connection
 const dec = new TextDecoder();
+const TURN_ORIGINS = ['https://brawl.expresslearn.my'];   // pages allowed to ask for relay logins
+const TURN_TTL = 4 * 3600;                                // a relay login works for 4 hours
+const turnHits = new Map();                               // ip -> {n, t}: at most 20 logins a minute per address
 
 function topicOk(t) { return t.length < 200 && PREFIXES.some(p => t.startsWith(p)) && !/[#+\u0000]/.test(t); }
 function pkt(type, body) {
@@ -28,10 +31,43 @@ export default {
       if ((req.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') return new Response('Expected a WebSocket', { status: 426 });
       return stub.fetch(req);
     }
+    if (url.pathname === '/turn') return turn(req, env);
     if (url.pathname === '/') return stub.fetch(new Request(url.origin + '/status'));
     return new Response('Not found', { status: 404 });
   }
 };
+
+// Relay (TURN) logins for the game's direct link. The TURN key stays here as a Worker secret
+// (TURN_KEY_ID, TURN_KEY_API_TOKEN); the game only ever sees logins that expire.
+async function turn(req, env) {
+  const origin = req.headers.get('Origin') || '';
+  const h = { 'content-type': 'application/json', 'cache-control': 'no-store', 'vary': 'Origin' };
+  if (!TURN_ORIGINS.includes(origin)) return new Response('{"iceServers":[]}', { status: 403, headers: h });
+  h['access-control-allow-origin'] = origin;
+  if (req.method !== 'GET') return new Response('{"iceServers":[]}', { status: 405, headers: h });
+  if (!env.TURN_KEY_ID || !env.TURN_KEY_API_TOKEN) return new Response('{"iceServers":[]}', { status: 503, headers: h });
+  const ip = req.headers.get('CF-Connecting-IP') || '?', now = Date.now();
+  let e = turnHits.get(ip);
+  if (!e || now - e.t > 60000) { e = { n: 0, t: now }; turnHits.set(ip, e); }
+  if (++e.n > 20) return new Response('{"iceServers":[]}', { status: 429, headers: h });
+  if (turnHits.size > 5000) turnHits.clear();
+  try {
+    const r = await fetch('https://rtc.live.cloudflare.com/v1/turn/keys/' + encodeURIComponent(env.TURN_KEY_ID) + '/credentials/generate-ice-servers', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + env.TURN_KEY_API_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ttl: TURN_TTL })
+    });
+    if (!r.ok) return new Response('{"iceServers":[]}', { status: 502, headers: h });
+    const j = await r.json();
+    const list = [].concat(j.iceServers || [])
+      // browsers block port 53, so those addresses only make the connection wait
+      .map(s => ({ ...s, urls: [].concat(s.urls || []).filter(u => !/:53(\?|$)/.test(u)) }))
+      .filter(s => s.urls.length);
+    return new Response(JSON.stringify({ iceServers: list }), { headers: h });
+  } catch (err) {
+    return new Response('{"iceServers":[]}', { status: 502, headers: h });
+  }
+}
 
 export class Broker {
   constructor(ctx, env) {

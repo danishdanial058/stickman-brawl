@@ -6304,12 +6304,35 @@ function netSend(m){if(net.c&&net.state==='match')net.c.publish(theirTopic(),m);
 /* --- direct link: game packets try a peer-to-peer WebRTC data channel (no detour through the server, and a lost
    packet never holds up the next one). The online server still handles matchmaking and is the fallback. --- */
 const RTC_ICE=[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']},{urls:'stun:stun.cloudflare.com:3478'}];
+// relay (TURN): when the two players can't reach each other directly (Wi-Fi vs mobile data), the data channel goes through
+// Cloudflare's relay instead of falling back to the server. Our server hands out logins that expire after a few hours.
+const TURN_URL='https://stickman-brawl.hackerrank.workers.dev/turn';
+const turn={ice:null,at:0,busy:false};
+function turnFetch(){
+  if(PREVIEW||turn.busy||typeof fetch!=='function')return;
+  if(turn.ice&&performance.now()-turn.at<3*3600e3)return;
+  turn.busy=true;
+  fetch(TURN_URL,{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
+    if(!j||!Array.isArray(j.iceServers))return;
+    const L=[];
+    for(const s of j.iceServers.slice(0,4)){
+      if(!s||typeof s!=='object')continue;
+      const urls=[].concat(s.urls).filter(u=>typeof u==='string'&&u.length<120&&/^(stun|turns?):[\w.\-]+(:\d{1,5})?(\?transport=(udp|tcp))?$/.test(u)).slice(0,6);
+      if(!urls.length)continue;
+      const o={urls};
+      if(typeof s.username==='string')o.username=s.username.slice(0,256);
+      if(typeof s.credential==='string')o.credential=s.credential.slice(0,256);
+      L.push(o);
+    }
+    if(L.length){turn.ice=L;turn.at=performance.now();}
+  }).catch(()=>{}).finally(()=>{turn.busy=false;});
+}
 const p2p={pc:null,dc:null,open:false,q:[],rx:0,mid:null};
 function p2pStop(){const pc=p2p.pc;p2p.pc=null;p2p.dc=null;p2p.open=false;p2p.q=[];if(pc){try{pc.close();}catch(e){}}}
 function p2pStart(){
   p2pStop();
   if(typeof RTCPeerConnection!=='function')return;
-  let pc;try{pc=new RTCPeerConnection({iceServers:RTC_ICE});}catch(e){return;}
+  let pc;try{pc=new RTCPeerConnection({iceServers:turn.ice?RTC_ICE.concat(turn.ice):RTC_ICE});}catch(e){return;}
   p2p.pc=pc;p2p.mid=net.mid;
   const mine=()=>p2p.pc===pc&&net.state==='match'&&net.mid===p2p.mid;
   pc.onicecandidate=e=>{if(e.candidate&&mine()){const c=e.candidate;netSend({t:'ice',c:c.candidate,m:c.sdpMid,i:c.sdpMLineIndex});}};
@@ -6350,7 +6373,7 @@ function gameSend(bytes){
 }
 
 function netStartSearch(room){
-  ensureAudio();closeScr();
+  ensureAudio();closeScr();turnFetch();
   if(room===undefined)room=net.room;
   netLeave();
   net.room=okRoom(room)?room:null;net.link=net.room?inviteUrl():'';cgRoom('open');
