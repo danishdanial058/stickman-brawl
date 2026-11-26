@@ -527,6 +527,7 @@ body.playing .pausechip{display:flex}
 .ctl-map kbd{min-width:52px;text-align:center;border:2px solid var(--ink);border-radius:8px;background:#fff6cf;padding:4px 8px;font:400 16px/1.2 var(--font-display)}
 .ctl-map button{min-height:44px;padding:0 14px;border:2.5px solid var(--ink);border-radius:10px;background:var(--card);font:400 15px var(--font-display);box-shadow:2px 2px 0 var(--ink);cursor:pointer}
 .ctl-map button.wait{background:#f6c928}
+.ctl-who{margin:16px 0 8px;font:400 20px var(--font-display)}.ctl-who small{font:15px var(--font-body,inherit);opacity:.7}.ctl-map kbd.two{white-space:pre-line;font-size:13px;line-height:1.15;padding:3px 8px}
 .ctl-status.on{color:#1f7a4d;font-weight:700}
 /* the Dodge button only shows when it is switched on */
 .key.dodge{display:none}
@@ -791,8 +792,12 @@ body.gp-nav :focus{outline:4px solid #f6c928!important;outline-offset:3px}
     </div>
     <div id="cKeys" class="ctl-pane" hidden>
       <p class="hint">Click Change, then press the key you want. Esc cancels. If the key is already used, the two actions swap.</p>
+      <h3 class="ctl-who">Player 1</h3>
       <ul class="ctl-map" id="keyMap"></ul>
-      <div class="ctl-rows"><button class="hb" id="keyReset" type="button">Reset keys</button></div>
+      <div class="ctl-rows"><button class="hb" id="keyReset" type="button">Reset Player 1 keys</button></div>
+      <h3 class="ctl-who">Player 2 <small>(2 Players mode)</small></h3>
+      <ul class="ctl-map" id="keyMap2"></ul>
+      <div class="ctl-rows"><button class="hb" id="keyReset2" type="button">Reset Player 2 keys</button></div>
     </div>
     <div id="cPad" class="ctl-pane" hidden>
       <p class="hint ctl-status" id="padStatus">No controller found. Connect one and press any button.</p>
@@ -4341,7 +4346,11 @@ for(const b of document.querySelectorAll('.ctab'))b.addEventListener('click',()=
 // ---- keyboard ----
 const KEY_ACTS=[['left','Move left'],['right','Move right'],['jump','Jump'],['down','Down / throw'],['punch','Punch'],['kick','Kick'],['block','Block'],['special','Special'],['dodge','Dodge']];
 const KEY_DEF={left:'KeyA',right:'KeyD',jump:'KeyW',down:'KeyS',punch:'KeyJ',kick:'KeyK',block:'KeyL',special:'Space',dodge:''};
-const keyMapNow=()=>{const m=Object.assign({},KEY_DEF);const s2=save.keys||{};for(const [a] of KEY_ACTS)if(typeof s2[a]==='string'&&s2[a].length<24)m[a]=s2[a];return m;};
+const KEY2_DEF={left:'ArrowLeft',right:'ArrowRight',jump:'ArrowUp',down:'ArrowDown',punch:'Numpad1',kick:'Numpad2',block:'Numpad3',special:'Numpad0',dodge:''};
+const KEY2_ALT={punch:'Comma',kick:'Period',block:'Slash',special:'ShiftRight'};   // extra keys for laptops with no number pad, until Player 2 changes a key
+const KP={p1:{def:KEY_DEF,sk:'keys',ul:'keyMap',map:P1KEYS},p2:{def:KEY2_DEF,sk:'keys2',ul:'keyMap2',map:P2KEYS}};
+const keyMapOf=w=>{const m=Object.assign({},KP[w].def);const s2=save[KP[w].sk]||{};for(const [a] of KEY_ACTS)if(typeof s2[a]==='string'&&s2[a].length<24)m[a]=s2[a];return m;};
+const keyMapNow=()=>keyMapOf('p1');
 function keyLabel(c){
   if(!c)return '—';
   const A={ArrowLeft:'←',ArrowRight:'→',ArrowUp:'↑',ArrowDown:'↓',Space:'Space',ShiftLeft:'L Shift',ShiftRight:'R Shift',ControlLeft:'L Ctrl',ControlRight:'R Ctrl',AltLeft:'L Alt',AltRight:'R Alt',Enter:'Enter',Tab:'Tab',Backspace:'Backspace',Comma:',',Period:'.',Slash:'/',Semicolon:';',Quote:"'",BracketLeft:'[',BracketRight:']',Minus:'-',Equal:'=',Backslash:'\\'};
@@ -4349,33 +4358,43 @@ function keyLabel(c){
   m=c.match(/^Digit(.)$/);if(m)return m[1];m=c.match(/^Numpad(.+)$/);if(m)return 'Num '+m[1];return c;
 }
 function applyKeys(){
-  const m=keyMapNow();
-  for(const c in P1KEYS)delete P1KEYS[c];
-  for(const [a] of KEY_ACTS)if(m[a])P1KEYS[m[a]]=a;
+  for(const w of ['p1','p2']){
+    const m=keyMapOf(w),K=KP[w].map;
+    for(const c in K)delete K[c];
+    if(w==='p2'&&!save.keys2)for(const a in KEY2_ALT)K[KEY2_ALT[a]]=a;
+    for(const [a] of KEY_ACTS)if(m[a])K[m[a]]=a;
+  }
+  const m=keyMapOf('p1');
   for(const t of TIPS){if(t[0]==='move')t[1]=keyLabel(m.left)+'  '+keyLabel(m.right);else if(m[t[0]])t[1]=keyLabel(m[t[0]]);}
 }
-let capKey=null;
+let capKey=null,capWho='p1';
 function renderKeyMap(){
-  const m=keyMapNow(),ul=$('keyMap');ul.textContent='';
-  for(const [a,name] of KEY_ACTS){
-    const li=document.createElement('li'),sp=document.createElement('span'),k=document.createElement('kbd'),b=document.createElement('button');
-    sp.textContent=name;k.textContent=capKey===a?'…':keyLabel(m[a]);b.type='button';b.textContent=capKey===a?'Press a key':'Change';if(capKey===a)b.classList.add('wait');
-    b.setAttribute('aria-label','Change the key for '+name);
-    b.addEventListener('click',()=>{capKey=capKey===a?null:a;renderKeyMap();});
-    li.append(sp,k,b);ul.appendChild(li);
+  for(const w of ['p1','p2']){
+    const m=keyMapOf(w),ul=$(KP[w].ul),pn=w==='p1'?'Player 1':'Player 2';ul.textContent='';
+    for(const [a,name] of KEY_ACTS){
+      const on=capKey===a&&capWho===w;
+      const li=document.createElement('li'),sp=document.createElement('span'),k=document.createElement('kbd'),b=document.createElement('button');
+      let lab=keyLabel(m[a]);if(w==='p2'&&!save.keys2&&KEY2_ALT[a]){lab+='\n'+keyLabel(KEY2_ALT[a]);k.className='two';}
+      sp.textContent=name;k.textContent=on?'…':lab;b.type='button';b.textContent=on?'Press a key':'Change';if(on)b.classList.add('wait');
+      b.setAttribute('aria-label','Change the '+pn+' key for '+name);
+      b.addEventListener('click',()=>{if(on)capKey=null;else{capKey=a;capWho=w;}renderKeyMap();});
+      li.append(sp,k,b);ul.appendChild(li);
+    }
   }
 }
 document.addEventListener('keydown',e=>{
   if(!capKey)return;
   e.preventDefault();e.stopImmediatePropagation();
   if(e.code!=='Escape'&&e.code!=='KeyP'&&e.code){
-    const m=keyMapNow(),old=m[capKey];
+    const w=capWho,o=w==='p1'?'p2':'p1',m=keyMapOf(w),old=m[capKey],mo=keyMapOf(o);
     for(const [a] of KEY_ACTS)if(a!==capKey&&m[a]===e.code)m[a]=old;   // already used: the two actions swap
-    m[capKey]=e.code;save.keys=m;writeSave();applyKeys();
+    let oc=false;for(const [a] of KEY_ACTS)if(mo[a]===e.code){mo[a]=old;oc=true;}   // the other player had it: they get this player's old key
+    m[capKey]=e.code;save[KP[w].sk]=m;if(oc)save[KP[o].sk]=mo;writeSave();applyKeys();
   }
   capKey=null;renderKeyMap();
 },true);
 $('keyReset').addEventListener('click',()=>{save.keys=null;capKey=null;writeSave();applyKeys();renderKeyMap();});
+$('keyReset2').addEventListener('click',()=>{save.keys2=null;capKey=null;writeSave();applyKeys();renderKeyMap();});
 
 // ---- game controller ----
 const PAD_ACTS=[['jump','Jump'],['punch','Punch'],['kick','Kick'],['block','Block'],['special','Special'],['dodge','Dodge'],['down','Down / throw']];
