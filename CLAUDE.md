@@ -6,7 +6,7 @@ The owner is Danish (Didi). Explain changes simply, test them, then commit and p
 
 ## The three builds (keep them in sync)
 
-**Nov 2026: the website is ahead.** `docs/index.html` has the big update (20-stage Arcade, 7 bosses, loadout, rivals, new fighters and weapons) and plays online on its own lobby `sbx/v5` with snapshot version 5, because its packets carry new weapon and shield data. `index.html` (app) and `crazygames/index.html` are still the old version on `sbx/v4`, so website and app players can't match each other until those two are updated. The work copy is `/home/claude/preview/arsenal_ui.html`.
+**Nov 2026: the website is ahead.** `docs/index.html` has the big update (20-stage Arcade, 7 bosses, loadout, rivals, new fighters and weapons) and plays online on its own lobby `sbx/v6` with snapshot version 6 (v5 until the Nov 26 Gasing + Keris release), because its packets carry new weapon, shield and state data. Gasing and Keris only drop offline for now: their floor top, tali and naga effects are not sent to online guests yet. `index.html` (app) and `crazygames/index.html` are still the old version on `sbx/v4`, so website and app players can't match each other until those two are updated. The work copy is `/home/claude/preview/arsenal_ui.html`.
 
 The same game lives in three files. **Every gameplay, UI or CSS change must be applied to all three**, usually with a small Python find-and-replace script that asserts each snippet matches exactly once per file.
 
