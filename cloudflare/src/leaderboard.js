@@ -3,7 +3,7 @@
 // Players are an id plus a secret key kept in their browser; only the key's SHA-256 is stored, so nobody can
 // post scores under someone else's id. Scores come from the player's own save, so every post is clamped and
 // rate-limited: numbers can only grow about as fast as real play allows.
-export const LB_ORIGINS = ['https://brawl.expresslearn.my'];
+export const LB_ORIGINS = ['https://brawl.expresslearn.my', 'http://brawl.expresslearn.my', 'https://www.brawl.expresslearn.my', 'http://www.brawl.expresslearn.my', 'https://danishdanial058.github.io'];
 const BOARDS = { survival: 's', wins: 'w', level: 'x' };
 const CAP = { s: 999, w: 1e6, x: 1e8 };
 const FIRST = { s: 60, w: 500, x: 200000 };          // most a brand-new player can bring from before the leaderboard

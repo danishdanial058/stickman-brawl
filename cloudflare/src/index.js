@@ -9,7 +9,7 @@ const MAX_PACKET = 32 * 1024;                         // bytes per MQTT packet
 const MAX_SUBS = 16;                                  // topics per connection
 const RATE = 120;                                     // messages per second per connection
 const dec = new TextDecoder();
-const TURN_ORIGINS = ['https://brawl.expresslearn.my'];   // pages allowed to ask for relay logins
+const TURN_ORIGINS = ['https://brawl.expresslearn.my', 'http://brawl.expresslearn.my', 'https://www.brawl.expresslearn.my', 'http://www.brawl.expresslearn.my', 'https://danishdanial058.github.io'];   // pages allowed to ask for relay logins
 const TURN_TTL = 4 * 3600;                                // a relay login works for 4 hours
 const turnHits = new Map();                               // ip -> {n, t}: at most 20 logins a minute per address
 
