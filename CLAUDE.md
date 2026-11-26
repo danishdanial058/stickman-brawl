@@ -6,7 +6,7 @@ The owner is Danish (Didi). Explain changes simply, test them, then commit and p
 
 ## The three builds (keep them in sync)
 
-**Nov 2026: the website is ahead.** `docs/index.html` has the big update (20-stage Arcade, 7 bosses, loadout, rivals, new fighters and weapons) and plays online on its own lobby `sbx/v7` with snapshot version 7 (v6 for the Nov 26 Gasing + Keris release, v7 since the Jester + Shift release the same day), because its packets carry new weapon, shield, fighter and state data. Gasing and Keris only drop offline, and Jester and Shift play as Street Brawler online (`NET_OFF`, `netSkin`): their effects, the gasing top/tali and Shift's car form are not sent to online guests yet. `index.html` (app) and `crazygames/index.html` are still the old version on `sbx/v4`, so website and app players can't match each other until those two are updated. The work copy is `/home/claude/preview/arsenal_ui.html`.
+**Nov 2026: the website is ahead.** `docs/index.html` has the big update (20-stage Arcade, 7 bosses, loadout, rivals, new fighters and weapons) and plays online on its own lobby `sbx/v8` with snapshot version 8 (v6 Gasing + Keris, v7 Jester + Shift, v8 since the Nov 26 Shift's Garage + arena effects + leaderboard release), because its packets carry new weapon, shield, fighter and state data. Gasing and Keris only drop offline, and Jester and Shift play as Street Brawler online (`NET_OFF`, `netSkin`): their effects, the gasing top/tali and Shift's car form are not sent to online guests yet. `index.html` (app) and `crazygames/index.html` are still the old version on `sbx/v4`, so website and app players can't match each other until those two are updated. The work copy is `/home/claude/preview/arsenal_ui.html`.
 
 The same game lives in three files. **Every gameplay, UI or CSS change must be applied to all three**, usually with a small Python find-and-replace script that asserts each snippet matches exactly once per file.
 
@@ -35,6 +35,14 @@ Other web files: `docs/privacy.html` (privacy policy; contact `stickmanbrawl.sup
 - Everything received is untrusted: parse it defensively and clamp it (`num`, `okColor`, `cleanName`).
 - Private rooms: "Invite a friend" (Online setup screen) makes a 6-character room. The room is its own matchmaking topic (`lobbyT()` → `r/<room>` instead of `lobby`). Invite links carry `?room=` (website/app) or the CrazyGames invite param `room`, and opening one joins that room at boot. On CrazyGames, `cgRoom()` calls `updateRoom`/`showInviteButton`/`hideInviteButton`/`leftRoom`, and `isInstantMultiplayer` opens a new room right away.
 - Local testing: `?broker=ws://127.0.0.1:PORT/mqtt` makes the game use a local broker and also exposes `window.__netdbg.g`, the game state, for test scripts.
+
+## Leaderboard (website only)
+
+- Server: `cloudflare/src/leaderboard.js`, one Durable Object `Leaderboard` (binding `LB`, migration v2) on the Worker route `/lb`. GET `?b=s|w|x&me=<id>` gives the top 50 for Survival/Wins/Level; POST sends a player's best numbers.
+- Each player gets `save.lbId` + `save.lbKey` (`lbIdent`); only the SHA-256 of the key is stored. Scores are clamped, rate-limited, and a new player's first numbers are capped (`FIRST`).
+- CORS only allows `LB_ORIGINS` (website now). Add the app and CrazyGames origins when they get this update.
+- Client: `LB_URL` (override with `?lb=`), `lbSubmit` after results and when the screen opens, screen `scrRank` from the home button `hbRank`.
+- Deploys: `deploy-server.yml` needs repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (set Nov 26 2026); the TURN ones are optional.
 
 ## Secrets
 
