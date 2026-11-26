@@ -6,7 +6,7 @@ The owner is Danish (Didi). Explain changes simply, test them, then commit and p
 
 ## The three builds (keep them in sync)
 
-**Nov 2026: the website is ahead.** `docs/index.html` has the big update (20-stage Arcade, 7 bosses, loadout, rivals, new fighters and weapons) and plays online on its own lobby `sbx/v6` with snapshot version 6 (v5 until the Nov 26 Gasing + Keris release), because its packets carry new weapon, shield and state data. Gasing and Keris only drop offline for now: their floor top, tali and naga effects are not sent to online guests yet. `index.html` (app) and `crazygames/index.html` are still the old version on `sbx/v4`, so website and app players can't match each other until those two are updated. The work copy is `/home/claude/preview/arsenal_ui.html`.
+**Nov 2026: the website is ahead.** `docs/index.html` has the big update (20-stage Arcade, 7 bosses, loadout, rivals, new fighters and weapons) and plays online on its own lobby `sbx/v7` with snapshot version 7 (v6 for the Nov 26 Gasing + Keris release, v7 since the Jester + Shift release the same day), because its packets carry new weapon, shield, fighter and state data. Gasing and Keris only drop offline, and Jester and Shift play as Street Brawler online (`NET_OFF`, `netSkin`): their effects, the gasing top/tali and Shift's car form are not sent to online guests yet. `index.html` (app) and `crazygames/index.html` are still the old version on `sbx/v4`, so website and app players can't match each other until those two are updated. The work copy is `/home/claude/preview/arsenal_ui.html`.
 
 The same game lives in three files. **Every gameplay, UI or CSS change must be applied to all three**, usually with a small Python find-and-replace script that asserts each snippet matches exactly once per file.
 
@@ -44,7 +44,7 @@ Keep API keys in `.env`, which git ignores (`.env.example` is the template), or 
 
 - Logical canvas is 960x540 (`CFG.W/H`, `CFG.GROUND=452`). `render()` scales it to fit with "contain", and on wider screens it fills the sides with a mirrored, dimmed backdrop (keeps online play fair).
 - Stages: `LAYOUTS`, `buildStage`, `placeStage`, `landOn`, `groundY`, `stageHazards`, `ringOut`, `respawn` (10 arenas with hazards: lava, spikes, conveyors, ice, moving platforms).
-- Fighters: `Fighter` class, `TRAITS` + `applyTraits` (band, ninja, robo, champ, phantom, each with its own special: shadow, rocket, crown, haunt), ragdoll KO with the `Rag` class (Verlet).
+- Fighters: `Fighter` class, `TRAITS` + `applyTraits` (band, ninja, robo, champ, phantom, each with its own special: shadow, rocket, crown, haunt), ragdoll KO with the `Rag` class (Verlet). Website also has Jester (`jesterGag` every 4th hit, `kS_punch`) and Shift (Up-Punch-Kick toggles `f.car` via `shiftToggle`, `drawKart`, `kS_cannon` as bot, `kS_ram` as car).
 - Weapons (10): `TOOL_IDS`, thrown weapons and `THROWN_IDS`, boomerang returns, bow fires arrows that stick.
 - Effects: impact, arcs, bolts, craters, chunks, sparks, smoke, blast, shatter, trails. Online they are synced as events ('im','ar','bo','cr','bl','sh').
 - Music: a sequencer with `SONGS`, `makeMelody`, `inst`, `drum`, `playStep`.
