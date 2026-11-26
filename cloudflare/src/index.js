@@ -1,6 +1,8 @@
 // Stickman Brawl online server for Cloudflare Workers.
 // The same tiny MQTT 3.1.1-over-WebSocket relay as server/server.js (QoS 0, exact topics, game prefix only),
 // running inside one Durable Object that uses the WebSocket Hibernation API, so idle time costs nothing.
+import { Leaderboard, leaderboard } from './leaderboard.js';
+export { Leaderboard };
 const PREFIXES = ['sbx/', 'stickmanbrawl-dd058/'];   // only this game's topics are allowed
 const MAX_CONN = 1000;                                // total connections
 const MAX_PACKET = 32 * 1024;                         // bytes per MQTT packet
@@ -32,6 +34,7 @@ export default {
       return stub.fetch(req);
     }
     if (url.pathname === '/turn') return turn(req, env);
+    if (url.pathname === '/lb') return leaderboard(req, env);
     if (url.pathname === '/') return stub.fetch(new Request(url.origin + '/status'));
     return new Response('Not found', { status: 404 });
   }

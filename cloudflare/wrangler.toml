@@ -10,3 +10,12 @@ class_name = "Broker"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Broker"]
+
+# leaderboard: one Durable Object with every player's best numbers
+[[durable_objects.bindings]]
+name = "LB"
+class_name = "Leaderboard"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Leaderboard"]
