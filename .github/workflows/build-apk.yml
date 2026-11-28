@@ -7,6 +7,8 @@ on:
       - 'render.yaml'
       - 'docs/**'
       - 'cloudflare/**'
+      - 'godot/**'
+      - '.github/workflows/build-godot.yml'
       - 'CLAUDE.md'
       - '.github/workflows/deploy-server.yml'
   workflow_dispatch:
