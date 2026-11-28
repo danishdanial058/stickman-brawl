@@ -4,25 +4,25 @@ A doodle-style stickman fighting game. It is one HTML file with all the CSS and 
 
 The owner is Danish (Didi). Explain changes simply, test them, then commit and push.
 
-## The three builds (keep them in sync)
+## The two builds (keep them in sync)
 
-**Nov 2026: the website is ahead.** `docs/index.html` has the big update (20-stage Arcade, 7 bosses, loadout, rivals, new fighters and weapons) and plays online on its own lobby `sbx/v8` with snapshot version 8 (v6 Gasing + Keris, v7 Jester + Shift, v8 since the Nov 26 Shift's Garage + arena effects + leaderboard release), because its packets carry new weapon, shield, fighter and state data. Gasing and Keris only drop offline, and Jester and Shift play as Street Brawler online (`NET_OFF`, `netSkin`): their effects, the gasing top/tali and Shift's car form are not sent to online guests yet. `index.html` (app) and `crazygames/index.html` are still the old version on `sbx/v4`, so website and app players can't match each other until those two are updated. The work copy is `/home/claude/preview/arsenal_ui.html`.
+**Nov 2026: the website is ahead.** `docs/index.html` has the big update (20-stage Arcade, 7 bosses, loadout, rivals, new fighters and weapons) and plays online on its own lobby `sbx/v8` with snapshot version 8 (v6 Gasing + Keris, v7 Jester + Shift, v8 since the Nov 26 Shift's Garage + arena effects + leaderboard release), because its packets carry new weapon, shield, fighter and state data. Gasing and Keris only drop offline, and Jester and Shift play as Street Brawler online (`NET_OFF`, `netSkin`): their effects, the gasing top/tali and Shift's car form are not sent to online guests yet. `index.html` (app) is still the old version on `sbx/v4`, so website and app players can't match each other until it is updated. The work copy is `/home/claude/preview/arsenal_ui.html`.
 
-The same game lives in three files. **Every gameplay, UI or CSS change must be applied to all three**, usually with a small Python find-and-replace script that asserts each snippet matches exactly once per file.
+The same game lives in two files. **Every gameplay, UI or CSS change must be applied to both**, usually with a small Python find-and-replace script that asserts each snippet matches exactly once per file.
 
 | File | What it is | Differences |
 |---|---|---|
 | `index.html` | Android app (packed into the APK) | `<body class="app">`, local fonts from `fonts/` (added by the workflow), no-zoom viewport |
 | `docs/index.html` | Website at https://brawl.expresslearn.my (GitHub Pages from `/docs`, `docs/CNAME`) | SEO/OG meta, manifest/icons, Google Fonts |
-| `crazygames/index.html` | CrazyGames HTML5 build | Loads CrazyGames SDK v3; game code is wrapped in `window.__boot=()=>{…}` and started after `SDK.init()` |
 
-Other web files: `docs/privacy.html` (privacy policy; contact `stickmanbrawl.support@gmail.com`, do not put the owner's personal email or GitHub on public pages), `docs/manifest.webmanifest`, icons, and the CrazyGames covers in `crazygames/`.
+Other web files: `docs/privacy.html` (privacy policy; contact `stickmanbrawl.support@gmail.com`, do not put the owner's personal email or GitHub on public pages), `docs/manifest.webmanifest` and icons.
+
+**CrazyGames is dropped (Nov 28 2026):** the submission was rejected and the owner doesn't want it any more. The `crazygames/` build, the SDK hooks (`CG`, `cgGameplay`, `cgBreakAd`, `cgRoom`, the ad overlay) and every CrazyGames mention were removed. Don't add them back.
 
 ## Shipping
 
-- **APK:** `.github/workflows/build-apk.yml` builds on every push to the app files. It creates the Android project inline (MainActivity is a full-screen WebView with system bars hidden) and publishes a GitHub release tagged `build-N` with `StickmanBrawl.apk`. `paths-ignore` skips server/, docs/, crazygames/, cloudflare/, render.yaml and this file.
+- **APK:** `.github/workflows/build-apk.yml` builds on every push to the app files. It creates the Android project inline (MainActivity is a full-screen WebView with system bars hidden) and publishes a GitHub release tagged `build-N` with `StickmanBrawl.apk`. `paths-ignore` skips server/, docs/, cloudflare/, render.yaml and this file.
 - **Website:** pushing `docs/` updates GitHub Pages within a couple of minutes.
-- **CrazyGames:** zip `crazygames/index.html`. The first submission was rejected for "overall quality", so the plan is to polish and resubmit later.
 - `debug.keystore` is a public debug signing key. **Replace it with a private release key before any Play Store upload**, and never commit that key.
 
 ## Online play
@@ -33,14 +33,14 @@ Other web files: `docs/privacy.html` (privacy policy; contact `stickmanbrawl.sup
 - Relay (TURN), website only so far: the game fetches short-lived relay logins from the Worker's `/turn` (`turnFetch`, `TURN_URL`, allowed origin list `TURN_ORIGINS` in `cloudflare/src/index.js`) and adds them to the direct link, so Wi-Fi vs mobile data still gets an unordered channel. The TURN key lives only in Worker secrets `TURN_KEY_ID`/`TURN_KEY_API_TOKEN`, set by `.github/workflows/deploy-server.yml` from GitHub secrets (plus `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`). The workflow deploys on pushes to `cloudflare/` or by hand. When the app gets this update, add its page origin to `TURN_ORIGINS`.
 - Direct link: once matched, the two players try a WebRTC data channel (`p2p`, `p2pStart`/`p2pSignal`/`gameSend`; offer/answer/ICE are sent as `sdp`/`ice` messages on the match topic, STUN only). Game packets (snapshots and inputs) go over it, unordered and without retransmits, and fall back to the server when it isn't open or goes quiet for 0.9 s. Old clients ignore the extra messages. The guest sends inputs 30 times a second (keeps phone Wi-Fi and data radios awake), and out-of-order packets are dropped (`net.lastCk`, input `seq`). The guest's ping label shows "· direct" when the link is on.
 - Everything received is untrusted: parse it defensively and clamp it (`num`, `okColor`, `cleanName`).
-- Private rooms: "Invite a friend" (Online setup screen) makes a 6-character room. The room is its own matchmaking topic (`lobbyT()` → `r/<room>` instead of `lobby`). Invite links carry `?room=` (website/app) or the CrazyGames invite param `room`, and opening one joins that room at boot. On CrazyGames, `cgRoom()` calls `updateRoom`/`showInviteButton`/`hideInviteButton`/`leftRoom`, and `isInstantMultiplayer` opens a new room right away.
+- Private rooms: "Invite a friend" (Online setup screen) makes a 6-character room. The room is its own matchmaking topic (`lobbyT()` → `r/<room>` instead of `lobby`). Invite links carry `?room=`, and opening one joins that room at boot.
 - Local testing: `?broker=ws://127.0.0.1:PORT/mqtt` makes the game use a local broker and also exposes `window.__netdbg.g`, the game state, for test scripts.
 
 ## Leaderboard (website only)
 
 - Server: `cloudflare/src/leaderboard.js`, one Durable Object `Leaderboard` (binding `LB`, migration v2) on the Worker route `/lb`. GET `?b=s|w|x&me=<id>` gives the top 50 for Survival/Wins/Level; POST sends a player's best numbers.
 - Each player gets `save.lbId` + `save.lbKey` (`lbIdent`); only the SHA-256 of the key is stored. Scores are clamped, rate-limited, and a new player's first numbers are capped (`FIRST`).
-- CORS only allows `LB_ORIGINS` (website now). Add the app and CrazyGames origins when they get this update.
+- CORS only allows `LB_ORIGINS` (website now). Add the app's origin when it gets this update.
 - Client: `LB_URL` (override with `?lb=`), `lbSubmit` after results and when the screen opens, screen `scrRank` from the home button `hbRank`.
 - Deploys: `deploy-server.yml` needs repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (set Nov 26 2026); the TURN ones are optional.
 
@@ -57,11 +57,10 @@ Keep API keys in `.env`, which git ignores (`.env.example` is the template), or 
 - Effects: impact, arcs, bolts, craters, chunks, sparks, smoke, blast, shatter, trails. Online they are synced as events ('im','ar','bo','cr','bl','sh').
 - Music: a sequencer with `SONGS`, `makeMelody`, `inst`, `drum`, `playStep`.
 - UI screens: scrPlay, scrSetup, scrQuest, scrArmor, scrSettings, scrGuide, scrAch, results. Helpers `openScr`/`closeScr`/`backScr`. Quests are in `QSETS` (daily/weekly/monthly).
-- Save: `save` object, `loadSave`/`writeSave` (localStorage, or CrazyGames data via `sGet`/`sSet`).
+- Save: `save` object, `loadSave`/`writeSave` (localStorage via `sGet`/`sSet`).
 - Input: `P1KEYS`/`P2KEYS`, `hold`, `virt` (touch held state), `pressAct`, `fire`, `dirTap` (double-tap = dodge, `tapDir` gives the direction).
 - Touch controls: `.pad` floats over the arena (see-through). Settings > Movement switches between the arrow buttons and a floating joystick (`save.ctl`, `joySet`/`joyReset`, body class `joy-on`).
 - First-fight guide: `TIPS`, `tipMark`, `drawTips` (touch buttons and the joystick glow).
-- CrazyGames hooks (`CG` is null elsewhere): `cgGameplay`, `cgBreakAd` (midgame ad before results, never online), muteAudio, username.
 
 ## Testing
 
@@ -71,5 +70,4 @@ Keep API keys in `.env`, which git ignores (`.env.example` is the template), or 
 ## Open ideas / to-do
 
 - Dodge on the joystick needs a quick double flick. Options were offered: add a **Dodge button** and/or loosen the flick timing (the user hasn't chosen yet).
-- Polish pass done (Nov 2026); resubmit to CrazyGames. Possible extra: leaderboard.
 - Big Ink boss redesign, a cloud save transfer code, a release keystore for the Play Store.

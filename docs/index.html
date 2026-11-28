@@ -644,7 +644,6 @@ body.gp-nav :focus{outline:4px solid #f6c928!important;outline-offset:3px}
   </div>
 </div>
 <p class="toast" id="dailyToast" role="status" hidden></p>
-<div class="scr" id="adOv" hidden style="z-index:60;align-items:center;justify-content:center"><p class="hint" style="font-size:18px">Advertisement…</p></div>
 
 <section class="scr" id="scrPlay" hidden aria-label="Choose a mode">
   <div class="scr-hd"><button class="back" type="button" data-back>&#8249; Back</button><h2>Choose a mode</h2></div>
@@ -768,7 +767,7 @@ body.gp-nav :focus{outline:4px solid #f6c928!important;outline-offset:3px}
       <button class="set-row" id="guideBtn" type="button"><span class="set-n">Guide<small>Moves, weapons and power-ups</small></span><span class="chev" aria-hidden="true"></span></button>
       <button class="set-row" id="achBtn" type="button"><span class="set-n">Achievements <span class="badge" id="achBadge" hidden></span><small id="achSub"></small></span><span class="chev" aria-hidden="true"></span></button>
     </div></section>
-    <p class="hint set-note">Progress is saved on your device (or your CrazyGames account). Online matches share only your player name, level, fighter and armor with your opponent. <a href="https://brawl.expresslearn.my/privacy.html" target="_blank" rel="noopener">Privacy Policy</a></p>
+    <p class="hint set-note">Progress is saved on your device. Online matches share only your player name, level, fighter and armor with your opponent. <a href="https://brawl.expresslearn.my/privacy.html" target="_blank" rel="noopener">Privacy Policy</a></p>
   </div>
 </section>
 
@@ -919,20 +918,11 @@ body.gp-nav :focus{outline:4px solid #f6c928!important;outline-offset:3px}
 <script>
 (()=>{
 'use strict';
-/* CrazyGames: the CrazyGames build loads their SDK and starts this script after SDK.init(). Everywhere else CG is null. */
-const CG=(window.__CG&&window.__CG.game)?window.__CG:null;
 function sGet(k){
-  try{if(CG&&CG.data){const v=CG.data.getItem(k);if(v!=null)return v;}}catch(e){}
   try{return localStorage.getItem(k);}catch(e){return null;}
 }
 function sSet(k,v){
-  try{if(CG&&CG.data)CG.data.setItem(k,v);}catch(e){}
   try{localStorage.setItem(k,v);}catch(e){}
-}
-let cgPlaying=false,cgName='',cgReload=false;
-function cgGameplay(on){
-  if(!CG||cgPlaying===on)return;cgPlaying=on;
-  try{on?CG.game.gameplayStart():CG.game.gameplayStop();}catch(e){}
 }
 
 /* ================= CONSTANTS ================= */
@@ -3913,7 +3903,7 @@ function afterRound(){
   }
 }
 function endGame(win){
-  g.phase='over';cgGameplay(false);
+  g.phase='over';
   const m=g.mode,D=cap(g.diffUsed),s=g.stats;
   const R={title:'',sub:'',primary:'Rematch',act:()=>startGame(m),share:'',won:win===true&&!(m==='online'&&g.noContest)};
   if(m==='camp')campScore(win);
@@ -3974,7 +3964,7 @@ function endGame(win){
   g.endBanner=g.noContest?{text:'NO CONTEST',color:'#56627a'}:m==='duo'?{text:win?'P1 WINS':'P2 WINS',color:win?'#1d4fd7':'#d1352b'}
     :{text:win?(m==='camp'?'STAGE CLEAR!':m==='arcade'?'CHAMPION!':'VICTORY'):(m==='survival'?'WIPED OUT':'DEFEAT'),color:win?'#1d4fd7':'#d1352b'};
   if(!g.noContest)sfx(win||m==='duo'?'win':'lose');
-  setTimeout(()=>cgBreakAd(()=>showResults(R,newly)),900);
+  setTimeout(()=>showResults(R,newly),900);
 }
 function continueArcade(){
   g.continues--;g.score=Math.floor(g.score/2);g.wins=[0,0];g.endBanner=null;g.paused=false;
@@ -4475,7 +4465,7 @@ function pauseToggle(){
   }
   $('pauseNote').hidden=true;$('pauseSetBtn').hidden=false;
   if(!g.paused&&!playingNow())return;
-  g.paused=!g.paused;clearHolds();cgGameplay(!g.paused);
+  g.paused=!g.paused;clearHolds();
   $('pauseOv').hidden=!g.paused;
   $('pauseBtn').textContent=g.paused?'Resume':'Pause';
   sfx('pause');
@@ -7100,23 +7090,13 @@ const theirTopic=()=>NT('m/'+net.mid+(net.role==='host'?'/h':'/g'));
 const okRoom=r=>typeof r==='string'&&/^[a-z0-9]{6}$/.test(r);
 const lobbyT=()=>NT(net.room?'r/'+net.room:'lobby');
 function inviteUrl(){
-  if(CG){try{const l=CG.game.inviteLink({room:net.room});if(l)return l;}catch(e){}}
   const base=/^https?:$/.test(location.protocol)&&!IS_APP&&!PREVIEW?location.origin+location.pathname:'https://brawl.expresslearn.my/';
   return base+'?room='+net.room;
 }
 function inviteRoomParam(){
   let r=null;
-  try{if(CG){const ip=CG.game.inviteParams;r=ip&&ip.room;if(!r)r=CG.game.getInviteParam('room');}}catch(e){}
   if(!r){try{r=new URLSearchParams(location.search).get('room');}catch(e){}}
   return okRoom(r)?r:null;
-}
-// CrazyGames room data: joinable while waiting, closed once the match starts, left when we leave
-function cgRoom(st){
-  if(!CG||!net.room)return;
-  const call=f=>{try{f();}catch(e){}};
-  if(st==='open'){call(()=>CG.game.updateRoom({roomId:net.room,isJoinable:true,inviteParams:{room:net.room}}));call(()=>CG.game.showInviteButton({room:net.room}));}
-  else if(st==='full'){call(()=>CG.game.updateRoom({roomId:net.room,isJoinable:false}));call(()=>CG.game.hideInviteButton());}
-  else{call(()=>CG.game.hideInviteButton());call(()=>CG.game.leftRoom());}
 }
 function netEv(...a){
   if(g.mode!=='online'||net.role!=='host'||net.state!=='match'||net.events.length>=80)return;
@@ -7233,7 +7213,7 @@ function netStartSearch(room){
   ensureAudio();closeScr();turnFetch();
   if(room===undefined)room=net.room;
   netLeave();
-  net.room=okRoom(room)?room:null;net.link=net.room?inviteUrl():'';cgRoom('open');
+  net.room=okRoom(room)?room:null;net.link=net.room?inviteUrl():'';
   net.state='seeking';net.searchT=performance.now();net.seekT=0;net.invite=null;net.seen={};net.err='';net.tries=0;
   $('netOv').hidden=false;$('netTitle').textContent='Finding a player';
   $('netCpu').hidden=true;$('netRetry').hidden=true;$('netCancel').hidden=false;
@@ -7250,7 +7230,7 @@ function netLeave(){
   if(net.state==='seeking'&&net.c)net.c.unsubscribe([lobbyT()]);
   netLeaveMatch(true);
   $('netOv').hidden=true;
-  if(net.room){cgRoom('left');net.room=null;}
+  if(net.room){net.room=null;}
 }
 function beginMatch(role,m,mid){
   net.state='match';net.role=role;net.mid=mid;
@@ -7260,7 +7240,7 @@ function beginMatch(role,m,mid){
   net.c.unsubscribe([lobbyT()]);
   net.c.subscribe([myTopic()]);
   p2pStart();
-  cgRoom('full');$('netInv').hidden=true;
+  $('netInv').hidden=true;
   if(role==='host')hostStart();
   else{$('netTitle').textContent='Player found!';$('netCancel').hidden=true;netStatus('Starting the match with '+net.opp.name+'…');}
 }
@@ -8260,7 +8240,7 @@ for(const b of document.querySelectorAll('.gtab'))b.addEventListener('click',()=
 function renderProfile(){
   achSync();
   const I=lvInfo(save.xp);
-  $('pfLv').textContent=I.L;$('pfName').textContent='Level '+I.L+(cgName?' · '+cgName:'');
+  $('pfLv').textContent=I.L;$('pfName').textContent='Level '+I.L;
   $('pfXp').textContent=I.L>=MAX_LV?'Max level':fmt(I.cur)+' / '+fmt(I.need)+' XP';
   $('pfXpFill').style.width=(I.L>=MAX_LV?100:I.cur/I.need*100).toFixed(1)+'%';
   $('pfCoins').textContent=fmt(save.coins);
@@ -9251,7 +9231,6 @@ let lbBoard='survival',lbLast=0;
 function lbIdent(){const hex=n=>{const a=new Uint8Array(n);crypto.getRandomValues(a);return [...a].map(x=>x.toString(16).padStart(2,'0')).join('');};
   if(!/^[a-f0-9]{16}$/.test(save.lbId||'')){save.lbId=hex(8);save.lbKey=hex(16);writeSave();}return save.lbId;}
 function lbSubmit(force){
-  if(typeof CG!=='undefined'&&CG)return Promise.resolve(false);
   const now=Date.now();if(!force&&now-lbLast<15000)return Promise.resolve(false);lbLast=now;lbIdent();
   return fetch(LB_URL,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:save.lbId,key:save.lbKey,name:save.name,s:save.survivalBest|0,w:save.wins|0,x:save.xp|0})})
     .then(r=>r.ok).catch(()=>false);
@@ -9350,23 +9329,11 @@ function refreshMenu(){
 }
 function setPlaying(on){
   document.body.classList.toggle('playing',on);
-  cgGameplay(on);
   $('menu').hidden=on;$('results').hidden=true;
   if(on)closeScr();
   $('pauseBtn').textContent='Pause';
 }
 let resultAction=null,resRetryAct=null,resToMap=false;
-let adBusy=false;
-function cgBreakAd(then){
-  if(!CG||!CG.ad||g.mode==='online'||g.mode==='guest'){then();return;}
-  adBusy=true;let done=false,st=false;
-  const end=()=>{if(done)return;done=true;adBusy=false;$('adOv').hidden=true;try{if(ac&&!muted)ac.resume();}catch(e){}then();};
-  $('adOv').hidden=false;
-  try{
-    CG.ad.requestAd('midgame',{adStarted:()=>{st=true;try{if(ac)ac.suspend();}catch(e){}},adFinished:end,adError:end});
-    setTimeout(()=>{if(!done&&!st)end();},4000);
-  }catch(e){end();}
-}
 const hitsTxt=n=>n+(n===1?' hit':' hits');
 function showResults(R,newly){
   if(g.mode!=='demo')setTimeout(()=>lbSubmit(),400);
@@ -9450,7 +9417,6 @@ function drawResHero(won){
 function toMenu(){
   if(g.mode==='camp'&&g.camp&&!g.camp.res&&g.phase!=='over'){campScore(false);writeSave();}
   $('svPick').hidden=true;$('bossPick').hidden=true;$('pick').hidden=true;
-  if(cgReload){writeSave();location.reload();return;}
   netLeave();
   const d=dailyCheck();if(d)showDaily(d);
   g.paused=false;$('pauseOv').hidden=true;clearHolds();
@@ -9497,7 +9463,7 @@ function volInput(e,commit){
 }
 for(const id of ['musicVol','sfxVol']){$(id).addEventListener('input',e=>volInput(e,false));$(id).addEventListener('change',e=>volInput(e,true));}
 const fsBtn=$('fsBtn'),gameEl=document.documentElement;
-if(IS_APP||CG||!(document.fullscreenEnabled&&gameEl.requestFullscreen))fsBtn.hidden=true;
+if(IS_APP||!(document.fullscreenEnabled&&gameEl.requestFullscreen))fsBtn.hidden=true;
 fsBtn.addEventListener('click',()=>{
   ensureAudio();
   try{
@@ -9528,30 +9494,12 @@ for(const id of TOOL_IDS){
   drawToolArt(c.getContext('2d'),id,128,128);
 }
 buildMenu();
-if(CG){
-  try{const st=CG.game.settings;if(st&&st.muteAudio){muted=true;MUS.on=false;}
-    CG.game.addSettingsChangeListener(ns=>{if(!ns)return;if(ns.muteAudio){muted=true;MUS.on=false;}else{muted=!!save.muted;MUS.on=save.music!==false;}syncToggles();});}catch(e){}
-  // logged-in CrazyGames players use their CrazyGames name; guests just play as guests
-  try{CG.user.getUser().then(u=>{if(u&&u.username){cgName=u.username;save.name=cleanName(u.username);writeSave();refreshMenu();}}).catch(()=>{});}catch(e){}
-  // a guest who logs in mid-session: their save moves to the account, so reload at the next calm moment
-  try{CG.user.addAuthListener(u=>{if(!u)return;writeSave();cgReload=true;if(!playingNow()&&$('results').hidden)location.reload();});}catch(e){}
-}
 questsEnsure();
 showDaily(dailyCheck());
 refreshMenu();syncToggles();
 startDemo();
-// CrazyGames: a brand-new player lands in a fight right away (instant multiplayer goes straight to matchmaking)
 const invRoom=inviteRoomParam();
 if(invRoom)setTimeout(()=>startGame('online',invRoom),300);
-else if(CG){
-  let im=false;try{im=!!CG.game.isInstantMultiplayer;}catch(e){}
-  if(im)setTimeout(()=>startGame('online',rid(6)),300);
-  else if(!save.xp&&!save.wins&&!save.firstFight){save.firstFight=true;save.mode='versus';save.diff='easy';save.arena='notebook';writeSave();refreshMenu();setTimeout(()=>startGame('versus'),300);}
-  // returning players also land in a fight right away (their last setup); Pause > Quit opens the menu. Online/2-player fall back to Quick Match.
-  else{const m=quickMode(),am=m==='online'||m==='duo'?'versus':m;setTimeout(()=>startGame(am),300);}
-}
-// CrazyGames: a player already in the game accepts a friend's invite (notification, link or friends list) -> join that room
-if(CG){try{CG.game.addJoinRoomListener(p=>{const r=p&&p.room;if(!okRoom(r))return;if(g.paused)pauseToggle();startGame('online',r);});}catch(e){}}
 
 let last=0,padReady=false;
 function loop(ts){

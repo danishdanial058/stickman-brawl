@@ -6,7 +6,6 @@ on:
       - 'server/**'
       - 'render.yaml'
       - 'docs/**'
-      - 'crazygames/**'
       - 'cloudflare/**'
       - 'CLAUDE.md'
       - '.github/workflows/deploy-server.yml'
