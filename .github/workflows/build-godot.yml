@@ -38,19 +38,21 @@ jobs:
 
       - name: Point Godot at the Android SDK, Java and the debug key
         run: |
-          mkdir -p "$HOME/.config/godot"
-          for f in editor_settings-4.tres editor_settings-4.4.tres; do
-            {
-              echo '[gd_resource type="EditorSettings" format=3]'
-              echo ''
-              echo '[resource]'
-              echo "export/android/android_sdk_path = \"$ANDROID_SDK_ROOT\""
-              echo "export/android/java_sdk_path = \"$JAVA_HOME\""
-              echo "export/android/debug_keystore = \"$GITHUB_WORKSPACE/debug.keystore\""
-              echo 'export/android/debug_keystore_user = "androiddebugkey"'
-              echo 'export/android/debug_keystore_pass = "android"'
-            } > "$HOME/.config/godot/$f"
-          done
+          # let Godot write its own editor settings first, then add the Android paths (like the godot-ci image)
+          godot --headless -e --quit --path godot 2>&1 | tail -3 || true
+          ls "$HOME/.config/godot" || true
+          F="$HOME/.config/godot/editor_settings-${GODOT_VERSION%.*}.tres"
+          case "$GODOT_VERSION" in *.*.*) F="$HOME/.config/godot/editor_settings-$(echo $GODOT_VERSION | cut -d. -f1-2).tres";; esac
+          test -f "$F" || printf '[gd_resource type="EditorSettings" format=3]\n\n[resource]\n' > "$F"
+          {
+            echo "export/android/android_sdk_path = \"$ANDROID_SDK_ROOT\""
+            echo "export/android/java_sdk_path = \"$JAVA_HOME\""
+            echo "export/android/debug_keystore = \"$GITHUB_WORKSPACE/debug.keystore\""
+            echo 'export/android/debug_keystore_user = "androiddebugkey"'
+            echo 'export/android/debug_keystore_pass = "android"'
+          } >> "$F"
+          echo "settings file: $F"; tail -8 "$F"
+          ls "$ANDROID_SDK_ROOT/build-tools" | tail -3
 
       - name: Import the project
         working-directory: godot
@@ -65,14 +67,11 @@ jobs:
 
       - name: Export web and Android
         working-directory: godot
-        env:
-          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ github.workspace }}/debug.keystore
-          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
-          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
           mkdir -p build/web build/android
+          touch build/.gdignore
           godot --headless --path . --export-release "Web" build/web/index.html 2>&1 | tail -20
-          godot --headless --path . --export-debug "Android" build/android/StickmanBrawlGodot.apk 2>&1 | tail -30
+          godot --headless --verbose --path . --export-debug "Android" build/android/StickmanBrawlGodot.apk 2>&1 | grep -iv "reimport\|scan\|loading_editor\|savepack" | tail -60
           ls -la build/web build/android
           test -f build/web/index.html
           test -f build/android/StickmanBrawlGodot.apk
