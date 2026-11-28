@@ -25,6 +25,12 @@ Other web files: `docs/privacy.html` (privacy policy; contact `stickmanbrawl.sup
 - **Website:** pushing `docs/` updates GitHub Pages within a couple of minutes.
 - `debug.keystore` is a public debug signing key. **Replace it with a private release key before any Play Store upload**, and never commit that key.
 
+## Godot 4 test (Nov 28 2026)
+
+- `godot/` is a small Godot 4.4.1 test of a possible engine move: Street Brawler vs the CPU on the Notebook arena with the notebook VFX, all drawn in code in `main.gd` (GDScript, GL Compatibility renderer). The live game is still the HTML one.
+- `.github/workflows/build-godot.yml` installs Godot + export templates on every push to `godot/`, runs a self-test (`-- --selftest`: a CPU vs CPU match that must print `SELFTEST OK` with no script errors), exports Web (no threads) and Android (debug-signed with `debug.keystore`), and publishes a pre-release `godot-test-N` with `StickmanBrawlGodot.apk` and `StickmanBrawlGodot-web.zip`.
+- Android export needs `rendering/textures/vram_compression/import_etc2_astc=true`, or it fails with a blank "configuration errors" message. The Android SDK/Java/keystore paths are appended to Godot's own `editor_settings-4.4.tres` in CI.
+
 ## Online play
 
 - Host-authoritative over MQTT 3.1.1 on a WebSocket. The client in the game is the `Mqtt` class, topic prefix `sbx/v4` (`NET_PREFIX`).
