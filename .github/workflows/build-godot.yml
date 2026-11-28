@@ -35,6 +35,7 @@ jobs:
           unzip -q "Godot_v${V}-stable_export_templates.tpz"
           mv templates/* "$HOME/.local/share/godot/export_templates/${V}.stable/"
           godot --version
+          ls -la "$HOME/.local/share/godot/export_templates/${V}.stable/"
 
       - name: Point Godot at the Android SDK, Java and the debug key
         run: |
